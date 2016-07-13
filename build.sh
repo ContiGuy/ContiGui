@@ -1,31 +1,31 @@
 #!/bin/bash
 #
 # build the whole selfcontained binary:
-#   - easiest is to use  `eg`  from  https://github.com/ContiGuy/conti-build
+#   - easiest is to use  `cb`  from  https://github.com/ContiGuy/conti-build
 #   - alternatively it can also be built using elm, go, ego
 #
 
-#if which eg > /dev/null; then
-#	EG=$(which eg)
-#fi
+if which cb > /dev/null; then
+	CB=$(which cb)
+fi
 
 if echo $* | grep upx > /dev/null ; then
-	UPX="$EG upx -9 /go/bin/coligui"
+	UPX="$CB upx -9 /go/bin/conti-gui"
 	if echo $* | grep -e brute -e ultra > /dev/null ; then
-		UPX="$EG upx --ultra-brute /go/bin/coligui"
+		UPX="$CB upx --ultra-brute /go/bin/conti-gui"
 	fi
 else
-	UPX="echo running coligui wui ..."
+	UPX="echo running conti-gui wui ..."
 fi
 
 if echo $* | grep run > /dev/null ; then
-    RUN="coligui wui"
+    RUN="conti-gui wui"
 else
 	RUN="echo ok."
 fi
 
-(cd wui && $EG go generate) &&
-	$EG go install -race &&
+(cd wui && $CB go generate) &&
+	$CB go install -race &&
 	$UPX &&
 	LOGXI=* $RUN
 
