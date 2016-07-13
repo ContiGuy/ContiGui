@@ -14,24 +14,17 @@
 
 module JobType exposing (..)
 
---import Widget as W exposing (..)
+import Json.Encode
+import Json.Decode       exposing ((:=))
+import Json.Decode.Extra exposing ((|:))
 
---import Html exposing (..)
---import Html.Events exposing (..)
---import Html.Attributes exposing (..)
---import Html.App
-import Json.Encode                               --as JE
-import Json.Decode exposing ((:=))  --, (|:)) -- as JD
-import Json.Decode.Extra exposing ((|:)) -- as JD
---import Regex as RX   -- exposing (regex) as RX
---import String exposing (..)
---import Dict   -- as Di  --  exposing (..)
 
 -- MODEL
 
 type alias JobTypes =
     { jobTypes : List JobType
     }
+
 {----------------------------------------------}
 {----------------------------------------------
 ----------------------------------------------}
@@ -39,15 +32,10 @@ type alias JobType =
     { jobs : List Job
     , id   : String
     , name : String
-    --, node : W.Node
-    --, cfgName      : String
-    --, tmpCfgName   : String
     }
 
 type alias Job =
-    { -- versions : List String
-    --, 
-      jsonId   : String
+    { jsonId   : String
     , yamlId   : String
     , name     : String
     , typeName : String
@@ -60,11 +48,11 @@ type alias Job =
 init : String -> JobType
 init jobTypeName =
   JobType [
-    Job "0-json" "0-yaml" "Create New" jobTypeName
+    Job "0-json" "0-yaml" "--"      jobTypeName
   , Job "1-json" "1-yaml" "default" jobTypeName
-  , Job "2-json" "2-yaml" "hra" jobTypeName
-  , Job "3-json" "3-yaml" "kati" jobTypeName
-  ] "jt5" jobTypeName  -- "Unknown Job Type"
+  , Job "2-json" "2-yaml" "hra"     jobTypeName
+  , Job "3-json" "3-yaml" "kati"    jobTypeName
+  ] "jt5" jobTypeName
 
 {----------------------------------------------}
 decodeJobTypes : Json.Decode.Decoder JobTypes
@@ -100,20 +88,18 @@ encodeJobType jobType =
 decodeJob : Json.Decode.Decoder Job
 decodeJob =
     Json.Decode.succeed Job
-        -- |: ("versions" := Json.Decode.list Json.Decode.string)
-        |: ("json_id"  := Json.Decode.string)
-        |: ("yaml_id"  := Json.Decode.string)
-        |: ("name"     := Json.Decode.string)
-        |: ("typeName" := Json.Decode.string)
+        |: ("json_id"   := Json.Decode.string)
+        |: ("yaml_id"   := Json.Decode.string)
+        |: ("name"      := Json.Decode.string)
+        |: ("type_name" := Json.Decode.string)
 
 encodeJob : Job -> Json.Encode.Value
 encodeJob job =
     Json.Encode.object
-        [ -- ("versions", Json.Encode.list <| Json.Encode.list (Json.Encode.string job.versions))
-          ("json_id",  Json.Encode.string job.jsonId)
-        , ("yaml_id",  Json.Encode.string job.yamlId)
-        , ("name",     Json.Encode.string job.name)
-        , ("typeName", Json.Encode.string job.typeName)
+        [ ("json_id",   Json.Encode.string job.jsonId)
+        , ("yaml_id",   Json.Encode.string job.yamlId)
+        , ("name",      Json.Encode.string job.name)
+        , ("type_name", Json.Encode.string job.typeName)
         ]
 
 {----------------------------------------------
