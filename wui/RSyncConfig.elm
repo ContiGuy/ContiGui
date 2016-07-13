@@ -14,14 +14,14 @@
 
 module RSyncConfig exposing (..)
 
-import Html exposing (..)
-import Html.App
-import Html.Events exposing (..)
-import Html.Attributes exposing (..)
-import Http exposing (..)
-import Task
-import Json.Decode as JD exposing ((:=))
-import Json.Encode as JE
+--import Html exposing (..)
+--import Html.App
+--import Html.Events exposing (..)
+--import Html.Attributes exposing (..)
+--import Http exposing (..)
+--import Task
+--import Json.Decode as JD exposing ((:=))
+--import Json.Encode as JE
 
 import Widget as W exposing (
     aRoot, aVertical, aHorizontal, aSwitch, aBool, aBoolX, aBooT, aString
@@ -264,15 +264,19 @@ folder : W.Id -> String -> String -> W.Node
 folder id descr prefix =
   aString (id ++ "-F") "Folder" descr (prefix ++ "{{}}")
 
+host : String -> String -> W.Node
 host id descr =
   aString (id ++ "-H") "Host" descr "{{}}"
 
+user : String -> String -> W.Node
 user id descr =
   aString (id ++ "-U") "User" descr "{{}}@"
 
+nwport : String -> String -> W.Node
 nwport id descr =
   aString (id ++ "-P") "Port" descr ":{{}}"
 
+localFolder : String -> W.Node
 localFolder id =
   let
     lfId = id ++ "-L"
@@ -282,6 +286,7 @@ localFolder id =
       folder lfId "a directory in the local file system" ""
     ] (fmtList "'{{}}'" "")
 
+remoteShell : String -> W.Node
 remoteShell id =
   let
     rsid = id ++ "-RS"
@@ -292,6 +297,7 @@ remoteShell id =
     , folder  rsid "a directory on the remote host" ":"
     ] (fmtList "'{{}}'" "")
 
+remoteDaemon : String -> W.Node
 remoteDaemon id =
   let
     did = id ++ "-RD"
@@ -303,6 +309,7 @@ remoteDaemon id =
     , folder  did "a directory on the remote host" "::"
     ] (fmtList "'{{}}'" "")
 
+locationSwitch : String -> String -> W.Node
 locationSwitch id name =
   aSwitch id name [
     localFolder  id

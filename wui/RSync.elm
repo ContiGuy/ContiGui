@@ -33,6 +33,8 @@ import Task
 import Json.Decode as JD exposing ((:=))
 import Json.Encode                          -- as JE
 
+
+main : Program Never
 main =
   Html.App.program {
     init          = init,
@@ -82,6 +84,26 @@ init =
   in
     ( Model "" ComboBox.init Nothing (Just "started") "" Util.Debug.init root
     , Cmd.none )
+
+
+type alias RSyncJob =
+  { job  : JobType.Job
+  , node : W.Node
+  }
+
+initJob : String -> Model -> RSyncJob
+initJob jobName model =
+  RSyncJob (JobType.Job "" "" jobName "RSync") model.root
+
+
+
+encodeRSyncJob : RSyncJob -> Json.Encode.Value
+encodeRSyncJob rsjob =
+  Json.Encode.object [
+    ( "job", JobType.encodeJob rsjob.job )
+  , ( "root", Widget.Data.encodeNode rsjob.node )
+  ]
+
 
 
 -- UPDATE
@@ -231,19 +253,6 @@ loadJobs model =
     Task.perform LoadJobsFail LoadJobsSucceed httpCall
 --------------------------------------}
 
-type alias RSyncJob =
-  { job  : JobType.Job
-  , node : W.Node
-  }
-
-initJob jobName model =
-  RSyncJob (JobType.Job "" "" jobName "RSync") model.root
-
-encodeRSyncJob rsjob =
-  Json.Encode.object [
-    ( "job", JobType.encodeJob rsjob.job )
-  , ( "root", Widget.Data.encodeNode rsjob.node )
-  ]
 
 {--------------------------------------}
 saveJob : String -> Model -> Cmd Msg
