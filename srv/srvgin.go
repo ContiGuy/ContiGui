@@ -25,17 +25,45 @@ import (
 )
 
 type (
-	//"name":    job.Name,
-	//"json_id": job.JsonSha1,
-	//"yaml_id": job.YamlSha1,
-	//"cmd":     job.Root.CmdLet,
+	//Json.Decode.succeed JobTypes
+	//    |: ("job_types" := ( Json.Decode.list decodeJobType ) )
+	//{----------------------------------------------}
+
+	//decodeJobType : Json.Decode.Decoder JobType
+	//decodeJobType =
+	//Json.Decode.succeed JobType
+	//    |: ("jobs" := Json.Decode.list decodeJob)
+	//    |: ("id"   := Json.Decode.string)
+	//    |: ("name" := Json.Decode.string)
+
+	JobTypes struct {
+		JobTypes []JobType `json:"job_types"`
+	}
+
+	JobType struct {
+		Id   string `json:"id"`
+		Name string `json:"name"`
+		Jobs []Job  `json:"jobs"`
+	}
+
+	//encodeRSyncJob : RSyncJob -> Json.Encode.Value
+	//encodeRSyncJob rsjob =
+	// Json.Encode.object [
+	//    ( "job", JobType.encodeJob rsjob.job )
+	//  , ( "root", Widget.Data.encodeNode rsjob.node )
+	//  ]
+	RSyncJob struct {
+		Job  Job
+		Root Node //--`json:"name"`
+	}
 
 	Job struct {
-		Name string `json:"name"`
+		Name     string `json:"name"`
+		TypeName string `json:"type_name"`
 		//		Id   string
 		JsonSha1 string `json:"json_id"`
 		YamlSha1 string `json:"yaml_id"`
-		Root     Node   //--`json:"name"`
+		//		Root     Node   //--`json:"name"`
 	}
 
 	Node struct {
@@ -75,12 +103,35 @@ func (eh *errHandler_T) ifErr(handle func()) bool {
 
 func (job *Job) Check() error {
 	if strings.TrimSpace(job.Name) == "" {
-		return errors.New("MISSING job Name")
+		msg := fmt.Sprintf("MISSING job Name: %#v", *job)
+		return errors.New(msg)
 	}
-	if strings.TrimSpace(job.Root.Label) == "" {
-		return errors.New("MISSING job Root Label")
+	//	if strings.TrimSpace(job.Root.Label) == "" {
+	//		//		return errors.New("MISSING job Root Label")
+	//		msg := fmt.Sprintf("MISSING job Root Label: %#v", *job)
+	//		return errors.New(msg)
+	//	}
+	//	return job.Root.ProcessTree()
+
+	return nil
+}
+
+func (rsJob *RSyncJob) Check() error {
+	//	if strings.TrimSpace(job.Name) == "" {
+	//		msg := fmt.Sprintf("MISSING job Name: %#v", *job)
+	//		return errors.New(msg)
+	//	}
+	err := rsJob.Job.Check()
+	if err != nil {
+		return err
 	}
-	return job.Root.ProcessTree()
+
+	if strings.TrimSpace(rsJob.Root.Label) == "" {
+		//		return errors.New("MISSING job Root Label")
+		msg := fmt.Sprintf("MISSING job Root Label: %#v", *rsJob)
+		return errors.New(msg)
+	}
+	return rsJob.Root.ProcessTree()
 }
 
 func (node *Node) ProcessTree() error {
@@ -115,11 +166,6 @@ func (node *Node) WalkTree(cnf func(*Node) error) error {
 	return cnf(node)
 }
 
-//func ServeGin(port int, baseDir string, htmlFiles_l []string) error {
-//	//	baseDir := "/tmp"
-//	return ServeGinX(port, baseDir, htmlFiles_l)
-//}
-
 func ServeGin(port int, baseDir string, htmlFiles_l []string) error {
 	router := gin.Default()
 
@@ -145,13 +191,13 @@ func ServeGin(port int, baseDir string, htmlFiles_l []string) error {
 		eh.ifErr(func() { c.AbortWithError(http.StatusBadRequest, eh.err) })
 	})
 
-	router.POST("/jobs/:cmd", func(c *gin.Context) {
+	router.POST("/jobs/:jobType", func(c *gin.Context) {
 		time.Sleep(300 * time.Millisecond)
 		eh := errHandler_T{}
 		eh.handleJobPost(baseDir, c)
 	})
 
-	router.GET("/jobs/:cmd", func(c *gin.Context) {
+	router.GET("/jobs/:jobType", func(c *gin.Context) {
 		time.Sleep(300 * time.Millisecond)
 		eh := errHandler_T{}
 		eh.handleJobList(baseDir, c)
@@ -185,39 +231,77 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 	//... parse JSON in post body
 	defer c.Request.Body.Close()
 
-	cmdName := c.Param("cmd")
-	if cmdName != "RSync" {
-		panic("UNKNOWN cmdName = " + cmdName)
+	jobTypeName := c.Param("jobType")
+	if jobTypeName != "RSync" {
+		panic("UNKNOWN jobTypeName = " + jobTypeName)
 	}
 
-	log.Info("loading jobs", "cmd", cmdName)
+	log.Info("loading jobs", "jobTypeName", jobTypeName)
 
 	//	var jobs_ml []gin.H
-	var jobs_l []Job
+	//	var jobs_l []Job
+
+	//	var jobTypes []JobType
+	//	jobTypes_m := make(map[string]JobType)
+	jobType := JobType{
+		Name: jobTypeName,
+	}
 
 	eh.safe(func() {
 		eh.forAllJobs(
-			baseDir, cmdName, "*", //-- jobName,
+			baseDir, jobTypeName, "*", //-- jobName,
 			"", //	"."+cs, // toIgnore,
 
-			// cmdDir, cmdName, jobName
+			// cmdDir, jobTypeName, jobName
 			func(oldJobFPath string, oldJob_b []byte) error {
-				log.Info("found job", "cmd", cmdName,
+				log.Info("found job", "jobType", jobTypeName,
 					"jobfile", oldJobFPath, "size", len(oldJob_b))
 
 				var cfg_b []byte
 				eh.safe(func() {
 					cfg_b, eh.err = extractYamlConfig(oldJob_b)
 				})
-				log.Info("extracted job config", "cmd", cmdName,
-					"jobfile", oldJobFPath, "size", len(cfg_b))
+				log.Info("extracted job config", "jobType", jobTypeName,
+					//--"jobfile", oldJobFPath,
+					"size", len(cfg_b))
 
-				var job Job
+				//				var job Job
+				var rsJob RSyncJob
 				eh.safe(func() {
-					eh.err = yaml.Unmarshal(cfg_b, &job)
+					eh.err = yaml.Unmarshal(cfg_b, &rsJob)
 				})
-				log.Info("parsed job", "cmd", cmdName,
-					"jobfile", oldJobFPath, "name", job.Name)
+				log.Info("parsed job", "jobType", jobTypeName,
+					"jobfile", oldJobFPath, "job.TypeName", rsJob.Job.TypeName, "name", rsJob.Job.Name)
+
+				//	JobTypes struct {
+				//		JobTypes []JobType `json:"job_types"`
+				//	}
+
+				//	JobType struct {
+				//		Id   string `json:"id"`
+				//		Name string `json:"name"`
+				//		Jobs []Job  `json:"jobs"`
+				//	}
+
+				//	RSyncJob struct {
+				//		Job  Job
+				//		Root Node //--`json:"name"`
+				//	}
+
+				//	Job struct {
+				//		Name     string `json:"name"`
+				//		TypeName string `json:"type_name"`
+				//		//		Id   string
+				//		JsonSha1 string `json:"json_id"`
+				//		YamlSha1 string `json:"yaml_id"`
+				//		//--Root     Node   //--`json:"name"`
+				//	}
+
+				eh.safe(func() {
+					if rsJob.Job.TypeName == jobTypeName {
+						jobType.Jobs = append(jobType.Jobs, rsJob.Job)
+					}
+				})
 
 				//				job_m := gin.H{
 				//					"name":    job.Name,
@@ -227,7 +311,7 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 				//				}
 
 				//				jobs_ml = append(jobs_ml, job_m)
-				jobs_l = append(jobs_l, job)
+				//				jobs_l = append(jobs_l, job)
 
 				eh.ifErr(func() { c.AbortWithError(http.StatusInternalServerError, eh.err) })
 				return eh.err
@@ -236,14 +320,24 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 	})
 
 	eh.safe(func() {
-		res := gin.H{
-			"job_type": gin.H{
-				"name": cmdName,
-				"id":   "x0",
-				"jobs": jobs_l,
-			},
+		jt := JobTypes{
+			JobTypes: []JobType{jobType},
 		}
-		c.JSON(http.StatusOK, res)
+		c.JSON(http.StatusOK, jt)
+
+		//		res := gin.H{
+		//			"job_types": JobTypes
+		//				"name": jobTypeName,
+		//				"id":   "x0",
+		//				"jobs": jobs_l,
+		//			},
+		////			"job_type": gin.H{
+		////				"name": jobTypeName,
+		////				"id":   "x0",
+		////				"jobs": jobs_l,
+		////			},
+		//		}
+		//		c.JSON(http.StatusOK, res)
 	})
 
 	eh.ifErr(func() { c.AbortWithError(http.StatusBadRequest, eh.err) })
@@ -271,7 +365,7 @@ func /*(eh *errHandler_T)*/ extractYamlConfig(job_b []byte) (cfg_b []byte, err e
 }
 
 func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
-	cmd_s := c.Param("cmd")
+	jobTypeName := c.Param("jobType")
 	//		id_s := c.Param("id")
 
 	//... parse JSON in post body
@@ -281,17 +375,26 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 	eh.safe(func() { body_b, eh.err = ioutil.ReadAll(c.Request.Body) })
 	//	msg1 := fmt.Sprintf("POSTed to /job/%s: %d bytes ...", cmd_s, len(body_b))
 	//	fmt.Println(msg1)
-	log.Info("POSTed to /job", "cmd", cmd_s, "bytes", len(body_b))
+	log.Info("POSTed to /job", "jobType", jobTypeName, "bytes", len(body_b))
 
-	var job Job
-	eh.safe(func() { eh.err = json.Unmarshal(body_b, &job) })
+	//	var job Job
+	var rsJob RSyncJob
+	eh.safe(func() { eh.err = json.Unmarshal(body_b, &rsJob) })
 	eh.safe(func() {
-		eh.err = job.Check()
+		eh.err = rsJob.Check()
+		eh.ifErr(func() {
+			body_s := string(body_b)
+			if len(body_s) > 200 {
+				body_s = body_s[:200]
+			}
+			log.Warn("Job.Check failed", "body", body_s)
+		})
 		//		fmt.Printf("got '%s': '''%s''' from %#v\n", cmd_s, cmdRes, node)
 		//			fmt.Printf("got '%s': %#v: %v\n", cmd_s, job, eh.err)
 		//		fmt.Printf("got '%s': err=%v\n", cmd_s, eh.err)
 	})
 
+	job := &rsJob.Job
 	eh.safe(func() {
 		//		jsonSha1 := eh.hashSha1(job, json.Marshal)
 		//		job.YamlSha1 = eh.hashSha1(job, yaml.Marshal)
@@ -303,9 +406,9 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 
 	var job2_yb []byte
 	eh.safe(func() {
-		job2_yb, eh.err = yaml.Marshal(job)
+		job2_yb, eh.err = yaml.Marshal(rsJob)
 	})
-	log.Info("Marshal job to YAML", "cmd", cmd_s, "size", len(job2_yb))
+	log.Info("Marshal job to YAML", "jobType", jobTypeName, "size", len(job2_yb))
 	//	msg2 := fmt.Sprintf("MarshalIndent /job/%s: %d bytes ...",
 	//		cmd_s, len(job2_yb))
 	//	fmt.Println(msg2)
@@ -326,15 +429,15 @@ cat <<EOYD | less
 # end:  CoLiGui job configuration for:  %[1]s - %[2]s  %[4]s
 #
 EOYD
-`, job.Root.Label, job.Name, job2_yb, timeStamp))
+`, rsJob.Root.Label, rsJob.Job.Name, job2_yb, timeStamp))
 
-	cmdFName := strings.TrimSpace(strings.ToLower(job.Root.Label))
+	cmdFName := strings.TrimSpace(strings.ToLower(rsJob.Root.Label))
 	cmdDir := filepath.Join(baseDir, cmdFName)
 	os.MkdirAll(cmdDir, 0777)
 
 	jobName := strings.TrimSpace(strings.ToLower(job.Name))
 	log.Info("generated job script",
-		"cmd", cmd_s, "cmdFName", cmdFName, "cmdDir", cmdDir,
+		"jobType", jobTypeName, "cmdFName", cmdFName, "cmdDir", cmdDir,
 		"jobName", jobName, "size", len(jobScript_b))
 
 	var jobFPath, cs string
