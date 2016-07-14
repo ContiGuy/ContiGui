@@ -259,17 +259,6 @@ saveJob : String -> Model -> Cmd Msg
 saveJob jobName model =
   let
     url = "/jobs/RSync"
-    -- body_s = W.jobAsJson 2 jobName model.root
-    -- body_s = JobType.encodeJob jobName model.root
-    --rsJob =
-      -- -- RSyncJob (JobType.Job "" "" jobName "RSync") model.root
-      --initJob jobName model.root
-    -- body_s = encodeRSyncJob rsJob
-
---    body_s =
---      Json.Encode.encode 2
---        <| encodeRSyncJob <| initJob jobName model.root
-    
     body_s =
       initJob jobName model
         |> encodeRSyncJob
@@ -298,27 +287,6 @@ decodeJobSaved =
     ("cmd"      := JD.string)
 
 {--------------------------------------
-type alias LoadJobsResult =
-  { jsonId  : String
-  , yamlId  : String
-  , jobName : String
-  , cmd     : String
-  }
-
-decodeJobsLoaded : JD.Decoder LoadJobsResult
-decodeJobsLoaded =
-  JD.object3 SaveJobResult
-    ("json-id"  := JD.string)
-    ("yaml-id"  := JD.string)
-    ("job-name" := JD.string)
-    ("cmd"      := JD.string)
-
-decodeJobType : Json.Decode.Decoder Model
-decodeJobType =
-    Json.Decode.succeed Model
-        |: ("jobs" := Json.Decode.list decodeJob)
-        |: ("id" := Json.Decode.string)
-        |: ("name" := Json.Decode.string)
 --------------------------------------}
 
 

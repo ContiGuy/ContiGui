@@ -325,6 +325,8 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 		}
 		c.JSON(http.StatusOK, jt)
 
+		log.Info("List Jobs return", "JobTypes", jt)
+
 		//		res := gin.H{
 		//			"job_types": JobTypes
 		//				"name": jobTypeName,

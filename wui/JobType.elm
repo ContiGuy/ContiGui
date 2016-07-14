@@ -64,10 +64,20 @@ decodeJobTypes =
 decodeJobType : Json.Decode.Decoder JobType
 decodeJobType =
     Json.Decode.succeed JobType
-        |: ("jobs" := Json.Decode.list decodeJob)
+        |: ("jobs" := decodeMaybeJobList ( Json.Decode.maybe ( Json.Decode.list decodeJob ) ) )
+        --- |: ("jobs" := Json.Decode.maybe ( Json.Decode.list decodeJob ) )
         |: ("id"   := Json.Decode.string)
         |: ("name" := Json.Decode.string)
 {----------------------------------------------}
+
+decodeMaybeJobList jobListDecoder =
+  let
+    unwrapMaybeJobList maybeJL =
+      case maybeJL of
+        Just jobList -> jobList
+        Nothing -> []
+  in
+    Json.Decode.map unwrapMaybeJobList jobListDecoder
 
 encodeJobTypes : JobTypes -> Json.Encode.Value
 encodeJobTypes record =

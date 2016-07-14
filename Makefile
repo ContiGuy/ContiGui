@@ -13,10 +13,10 @@
 
 all: conti-gui
 
-conti-gui: wui
+conti-gui: gen-wui
 	${CB} go install -race
 
-wui:
+gen-wui:
 	cd wui && ${CB} go generate
 
 run: conti-gui
