@@ -1,13 +1,19 @@
 module JsonTest exposing (..)
 
 import Html              exposing (..)
-import Json.Decode       exposing (decodeString, (:=), object2, string)
+import Json.Decode       exposing (decodeString, (:=), object2, string, int)
 import Json.Decode.Extra exposing (withDefault, lazy)
 
 type alias Record =
   { id : Int
   , tree : Tree
   }
+
+decodeRecord =
+  object2 Record
+    ( "id" := int )
+    ( "tree" := treeNode )
+    
 
 type Tree
     = Leaf
@@ -34,21 +40,20 @@ decodeStr2LI decoder s =
 decodeTree2Text2LI : String -> Html a
 decodeTree2Text2LI s =
     decodeStr2LI treeNode s
-    {---------------------------------
-    li [] [
-      s ++ "  >>>  " ++ (decodeString treeNode s |> toString)
-      |> text
-    ]
-    ---------------------------------}
+
+decodeRecord2Text2LI : String -> Html a
+decodeRecord2Text2LI s =
+    decodeStr2LI decodeRecord s
+
 
 main : Html a
 main =
     ul [] [
-      decodeTree2Text2LI "{}"
+      decodeRecord2Text2LI """{"id":3, "tree":{"name": "joe"}}"""
+    , decodeTree2Text2LI "{}"
     , decodeTree2Text2LI """{"name": "joe"}"""
     , decodeTree2Text2LI """{"name": "joe", "kids":[]}"""
     , decodeTree2Text2LI """{"name": "joe", "kids": {"name":"jim"}}"""
-    , decodeTree2Text2LI """{"name": "joe"}"""
     , decodeTree2Text2LI """{"name": "joe"}"""
     , decodeTree2Text2LI """{"name": "joe"}"""
     , decodeTree2Text2LI "{}"
