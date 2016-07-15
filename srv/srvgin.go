@@ -37,13 +37,16 @@ type (
 	//    |: ("name" := Json.Decode.string)
 
 	JobTypes struct {
-		JobTypes []JobType `json:"job_types"`
+		JobTypes []JobType `json:"job_types,omitempty"`
 	}
 
 	JobType struct {
-		Id   string `json:"id"`
+		//		Id   string `json:"id,omitempty"`
+		Id string `json:"id"`
+		//		Name string `json:"name,omitempty"`
 		Name string `json:"name"`
-		Jobs []Job  `json:"jobs"`
+		//		Jobs []Job `json:"jobs,omitempty"`
+		Jobs []Job `json:"jobs"` // `json:"jobs,omitempty"`
 	}
 
 	//encodeRSyncJob : RSyncJob -> Json.Encode.Value
@@ -52,28 +55,36 @@ type (
 	//    ( "job", JobType.encodeJob rsjob.job )
 	//  , ( "root", Widget.Data.encodeNode rsjob.node )
 	//  ]
-	RSyncJob struct {
-		Job  Job
-		Root Node //--`json:"name"`
-	}
+
+	//	RSyncJob struct {
+	//		Job  Job
+	//		Root Node //--`json:"name"`
+	//	}
 
 	Job struct {
-		Name     string `json:"name"`
-		TypeName string `json:"type_name"`
+		Name     string `json:"name,omitempty"`
+		TypeName string `json:"type_name,omitempty"`
 		//		Id   string
-		JsonSha1 string `json:"json_id"`
-		YamlSha1 string `json:"yaml_id"`
-		//		Root     Node   //--`json:"name"`
+		JsonSha1 string `json:"json_id,omitempty"`
+		YamlSha1 string `json:"yaml_id,omitempty"`
+		//		Root     Node   `json:",omitempty"` //--`json:"name"`
+		Root Node `json:"root"` //--`json:"name"`
 	}
 
 	Node struct {
-		Id          string
-		Type        string
-		Label       string
-		Description string
-		Value       interface{}
-		CmdLet      string
-		Kids        []*Node
+		//		Id string `json:",omitempty"`
+		Id string `json:"id"`
+		//		Type        string `json:",omitempty"`
+		//		Label       string                 `json:",omitempty"`
+		Label string `json:"label"`
+		//		Description string                 `json:",omitempty"`
+		Description string `json:"descr"`
+		//		Value       map[string]interface{} `json:",omitempty"`
+		Value map[string]interface{} `json:"value"`
+		//		CmdLet      string                 `json:",omitempty"`
+		CmdLet string `json:"cmdlet"`
+		//		Kids        []*Node                `json:",omitempty"`
+		Kids []*Node `json:"kids"`
 		//		IsActive *bool `json:"active"`
 	}
 
@@ -106,33 +117,33 @@ func (job *Job) Check() error {
 		msg := fmt.Sprintf("MISSING job Name: %#v", *job)
 		return errors.New(msg)
 	}
-	//	if strings.TrimSpace(job.Root.Label) == "" {
-	//		//		return errors.New("MISSING job Root Label")
-	//		msg := fmt.Sprintf("MISSING job Root Label: %#v", *job)
-	//		return errors.New(msg)
-	//	}
-	//	return job.Root.ProcessTree()
-
-	return nil
-}
-
-func (rsJob *RSyncJob) Check() error {
-	//	if strings.TrimSpace(job.Name) == "" {
-	//		msg := fmt.Sprintf("MISSING job Name: %#v", *job)
-	//		return errors.New(msg)
-	//	}
-	err := rsJob.Job.Check()
-	if err != nil {
-		return err
-	}
-
-	if strings.TrimSpace(rsJob.Root.Label) == "" {
+	if strings.TrimSpace(job.Root.Label) == "" {
 		//		return errors.New("MISSING job Root Label")
-		msg := fmt.Sprintf("MISSING job Root Label: %#v", *rsJob)
+		msg := fmt.Sprintf("MISSING job Root Label: %#v", *job)
 		return errors.New(msg)
 	}
-	return rsJob.Root.ProcessTree()
+	return job.Root.ProcessTree()
+
+	//	return nil
 }
+
+//func (rsJob *RSyncJob) Check() error {
+//	//	if strings.TrimSpace(job.Name) == "" {
+//	//		msg := fmt.Sprintf("MISSING job Name: %#v", *job)
+//	//		return errors.New(msg)
+//	//	}
+//	err := rsJob.Job.Check()
+//	if err != nil {
+//		return err
+//	}
+
+//	if strings.TrimSpace(rsJob.Root.Label) == "" {
+//		//		return errors.New("MISSING job Root Label")
+//		msg := fmt.Sprintf("MISSING job Root Label: %#v", *rsJob)
+//		return errors.New(msg)
+//	}
+//	return rsJob.Root.ProcessTree()
+//}
 
 func (node *Node) ProcessTree() error {
 	nodesById_m := make(nodesById_M)
@@ -245,6 +256,7 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 	//	jobTypes_m := make(map[string]JobType)
 	jobType := JobType{
 		Name: jobTypeName,
+		Jobs: []Job{},
 	}
 
 	eh.safe(func() {
@@ -265,13 +277,16 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 					//--"jobfile", oldJobFPath,
 					"size", len(cfg_b))
 
-				//				var job Job
-				var rsJob RSyncJob
+				var job Job
+				//				var rsJob RSyncJob
 				eh.safe(func() {
-					eh.err = yaml.Unmarshal(cfg_b, &rsJob)
+					eh.err = yaml.Unmarshal(cfg_b, &job) //-- &rsJob)
 				})
 				log.Info("parsed job", "jobType", jobTypeName,
-					"jobfile", oldJobFPath, "job.TypeName", rsJob.Job.TypeName, "name", rsJob.Job.Name)
+					"jobfile", oldJobFPath,
+					//					 "job.TypeName", rsJob.Job.TypeName, "name", rsJob.Job.Name)
+					"job.TypeName", job.TypeName,
+					"name", job.Name)
 
 				//	JobTypes struct {
 				//		JobTypes []JobType `json:"job_types"`
@@ -298,8 +313,13 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 				//	}
 
 				eh.safe(func() {
-					if rsJob.Job.TypeName == jobTypeName {
-						jobType.Jobs = append(jobType.Jobs, rsJob.Job)
+					//					if rsJob.Job.TypeName == jobTypeName {
+					//						jobType.Jobs = append(jobType.Jobs, rsJob.Job)
+					if job.TypeName == jobTypeName {
+						// FIXME: remove! this is just here to minimize the data traffic
+						job.Root.Kids = []*Node{}
+						//						job.Root = Node{}
+						jobType.Jobs = append(jobType.Jobs, job)
 					}
 				})
 
@@ -319,6 +339,7 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 		)
 	})
 
+	var buf []byte
 	eh.safe(func() {
 		jt := JobTypes{
 			JobTypes: []JobType{jobType},
@@ -326,6 +347,9 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 		c.JSON(http.StatusOK, jt)
 
 		log.Info("List Jobs return", "JobTypes", jt)
+
+		//		buf, eh.err = json.MarshalIndent(jt, "", "  ")
+		buf, eh.err = json.Marshal(jt)
 
 		//		res := gin.H{
 		//			"job_types": JobTypes
@@ -342,6 +366,9 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 		//		c.JSON(http.StatusOK, res)
 	})
 
+	eh.safe(func() {
+		fmt.Printf("returned JobTypes =\n%s\n", buf)
+	})
 	eh.ifErr(func() { c.AbortWithError(http.StatusBadRequest, eh.err) })
 	return eh.err
 }
@@ -379,11 +406,12 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 	//	fmt.Println(msg1)
 	log.Info("POSTed to /job", "jobType", jobTypeName, "bytes", len(body_b))
 
-	//	var job Job
-	var rsJob RSyncJob
-	eh.safe(func() { eh.err = json.Unmarshal(body_b, &rsJob) })
+	var job Job
+	//	var rsJob RSyncJob
+	eh.safe(func() { eh.err = json.Unmarshal(body_b, &job) }) //--&rsJob) })
 	eh.safe(func() {
-		eh.err = rsJob.Check()
+		//		eh.err = rsJob.Check()
+		eh.err = job.Check()
 		eh.ifErr(func() {
 			body_s := string(body_b)
 			if len(body_s) > 200 {
@@ -396,7 +424,7 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 		//		fmt.Printf("got '%s': err=%v\n", cmd_s, eh.err)
 	})
 
-	job := &rsJob.Job
+	//	job := &rsJob.Job
 	eh.safe(func() {
 		//		jsonSha1 := eh.hashSha1(job, json.Marshal)
 		//		job.YamlSha1 = eh.hashSha1(job, yaml.Marshal)
@@ -408,7 +436,7 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 
 	var job2_yb []byte
 	eh.safe(func() {
-		job2_yb, eh.err = yaml.Marshal(rsJob)
+		job2_yb, eh.err = yaml.Marshal(job) //--rsJob)
 	})
 	log.Info("Marshal job to YAML", "jobType", jobTypeName, "size", len(job2_yb))
 	//	msg2 := fmt.Sprintf("MarshalIndent /job/%s: %d bytes ...",
@@ -431,9 +459,12 @@ cat <<EOYD | less
 # end:  CoLiGui job configuration for:  %[1]s - %[2]s  %[4]s
 #
 EOYD
-`, rsJob.Root.Label, rsJob.Job.Name, job2_yb, timeStamp))
+`,
+		//		rsJob.Root.Label, rsJob.Job.Name, job2_yb, timeStamp))
+		job.Root.Label, job.Name, job2_yb, timeStamp))
 
-	cmdFName := strings.TrimSpace(strings.ToLower(rsJob.Root.Label))
+	//	cmdFName := strings.TrimSpace(strings.ToLower(rsJob.Root.Label))
+	cmdFName := strings.TrimSpace(strings.ToLower(job.Root.Label))
 	cmdDir := filepath.Join(baseDir, cmdFName)
 	os.MkdirAll(cmdDir, 0777)
 

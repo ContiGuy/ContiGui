@@ -15,7 +15,7 @@
 module RSync exposing (Model, Msg, init, update, viewHead, viewBody)
 
 import Widget as W
-import Widget.Data
+-- import Widget.Data
 
 import RSyncConfig exposing (..)
 
@@ -85,7 +85,7 @@ init =
     ( Model "" ComboBox.init Nothing (Just "started") "" Util.Debug.init root
     , Cmd.none )
 
-
+{-----------------------------------
 type alias RSyncJob =
   { job  : JobType.Job
   , node : W.Node
@@ -94,8 +94,7 @@ type alias RSyncJob =
 initJob : String -> Model -> RSyncJob
 initJob jobName model =
   RSyncJob (JobType.Job "" "" jobName "RSync") model.root
-
-
+-----------------------------------
 
 encodeRSyncJob : RSyncJob -> Json.Encode.Value
 encodeRSyncJob rsjob =
@@ -103,6 +102,7 @@ encodeRSyncJob rsjob =
     ( "job", JobType.encodeJob rsjob.job )
   , ( "root", Widget.Data.encodeNode rsjob.node )
   ]
+-----------------------------------}
 
 
 
@@ -189,8 +189,6 @@ update msg model =
           , lastErr = Nothing
           , lastOk = Just ( "job " ++ saveResult.jobName ++ " saved" )
           } ! [ Cmd.map ComboMsg nCbMsg ]
-{--------------------------------------
---------------------------------------}
 
       SaveFail err ->
           { model
@@ -199,6 +197,8 @@ update msg model =
           , lastOk = Nothing
           } ! []
       
+{--------------------------------------
+--------------------------------------}
       JobsLoadRequested ->
         let
           loadJobsCmdMsg =
@@ -212,9 +212,11 @@ update msg model =
 
       LoadJobsSucceed loadedJobs ->
         let
-          -- jobType = List.head <| List.filter (\ jt -> jt.name == "RSync") loadedJobs.jobTypes
           rsyncJobsOnly jobType =
-            jobType.name == "RSync"
+            let
+              jtName = Debug.log "LoadJobsSucceed, found job type" jobType.name
+            in
+              jtName == "RSync"
           optJobType = List.filter rsyncJobsOnly loadedJobs.jobTypes |> List.head
           jobNames =
             case optJobType of
@@ -223,9 +225,10 @@ update msg model =
               Nothing ->
                 []
           
-          -- jobNames = List.map .name loadedJobs.jobTypes.jobs
+          newOpts =
+            ComboBox.NewOptions <| "" :: jobNames
           ( nCombo, nCbMsg ) =
-            ComboBox.update (ComboBox.NewOptions jobNames) model.combo
+            ComboBox.update newOpts model.combo
         in
           { model
           | combo = nCombo
@@ -248,20 +251,42 @@ loadJobs model =
     url = "/jobs/RSync"
     -- body_s = W.jobAsJson 2 jobName model.root
     -- httpCall = Http.get decodeJobsLoaded url -- (Http.string body_s)
-    httpCall = Http.get JobType.decodeJobTypes url
+    -- httpCall = Http.get JobType.decodeJobTypes url
+    httpCall = Http.get decodeJobTypes url
+    ---httpCall = Http.getString url
   in
+    -- Task.perform LoadJobsFail LoadJobsSucceed ( decodeXXX httpCall )
     Task.perform LoadJobsFail LoadJobsSucceed httpCall
+
+--decodeXXX s =
+  --JobType.JobTypes s
+
+decodeJobTypes : JD.Decoder JobType.JobTypes
+decodeJobTypes =
+  let
+    x = Debug.log "decodeJobTypes" 1
+  in
+    JobType.decodeJobTypes
+--------------------------------------}
+
+initJob : String -> Model -> JobType.Job
+initJob jobName model =
+  JobType.Job "" "" jobName "RSync" model.root
+
+{--------------------------------------
+encodeRSyncJob job =
+  JobType.encodeJob job
 --------------------------------------}
 
 
-{--------------------------------------}
 saveJob : String -> Model -> Cmd Msg
 saveJob jobName model =
   let
     url = "/jobs/RSync"
     body_s =
       initJob jobName model
-        |> encodeRSyncJob
+        --- |> encodeRSyncJob
+        |> JobType.encodeJob
         |> Json.Encode.encode 2
     
     postCall = Http.post decodeJobSaved url (Http.string body_s)

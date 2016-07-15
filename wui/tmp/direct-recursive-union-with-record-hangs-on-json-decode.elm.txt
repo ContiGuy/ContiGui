@@ -1,0 +1,1 @@
+direct-recursive-union-with-record-hangs-on-json-decode.elm

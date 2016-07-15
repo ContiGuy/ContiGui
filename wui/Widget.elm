@@ -93,7 +93,7 @@ type Formatter
 
 type alias Node = Widget.Data.Node
 type alias Id = Widget.Data.Id
-type alias Kids = Widget.Data.Kids
+--type alias Kids = Widget.Data.Kids
 type alias Value = Widget.Data.Value
 type alias Formatter = Widget.Data.Formatter
 
@@ -111,6 +111,19 @@ fmtById cmdFmt listSep =
 --  BoolFmtr cmdTrue cmdFalse
 
 
+aRoot : String -> List Node -> Formatter -> Node
+aRoot label kidsList fmtr =
+  {------------------------------------------
+  let
+    rootNode = Node "root" label "root node of the command" RootCmd (Widget.Data.Kids kidsList) fmtr
+    --grandKids = flatKidsList rootNode
+  in
+    --( rootNode, rootNode :: grandKids )
+    --rootNode
+  ------------------------------------------}
+    Node "root" label "root node of the command" RootCmd fmtr (Widget.Data.KidsList kidsList)
+
+{-------------------------------------------------------------------
 aRoot : String -> List Node -> Formatter -> ( Node, List Node )
 aRoot label kidsList fmtr =
   let
@@ -118,20 +131,19 @@ aRoot label kidsList fmtr =
     grandKids = flatKidsList rootNode
   in
     ( rootNode, rootNode :: grandKids )
+-------------------------------------------------------------------}
 
 aVertical : String -> String -> List Node -> Formatter -> Node
 aVertical id label kidsList fmtr =
-  --Node (id ++ "-VG") label VerGroup (KidsList kidsList) fmtr
---  Node (id ++ "-VG") label (Group True False) (KidsList kidsList) fmtr
---  Node (id ++ "-VG") label "a vertical grouping" (Group True) (KidsList kidsList) fmtr
-  Node (id ++ "-VG") label "a vertical grouping" (Group Widget.Data.Vertical) (KidsList kidsList) fmtr
+  --Node (id ++ "-VG") label "a vertical grouping" (Group Widget.Data.Vertical) (KidsList kidsList) fmtr
+  --Node (id ++ "-VG") label "a vertical grouping" (Group Widget.Data.Vertical) (Widget.Data.Kids kidsList) fmtr
+  Node (id ++ "-VG") label "a vertical grouping" (Group Widget.Data.Vertical) fmtr (Widget.Data.KidsList kidsList)
 
 aHorizontal : String -> String -> List Node -> Formatter -> Node
 aHorizontal id label kidsList fmtr =
-  --Node (id ++ "-HG") label HorGroup (KidsList kidsList) fmtr
---  Node (id ++ "-HG") label (Group False False) (KidsList kidsList) fmtr
---  Node (id ++ "-HG") label "a horizontal grouping"(Group False) (KidsList kidsList) fmtr
-  Node (id ++ "-HG") label "a horizontal grouping" (Group Widget.Data.Horizontal) (KidsList kidsList) fmtr
+  --Node (id ++ "-HG") label "a horizontal grouping" (Group Widget.Data.Horizontal) (KidsList kidsList) fmtr
+  --Node (id ++ "-HG") label "a horizontal grouping" (Group Widget.Data.Horizontal) (Widget.Data.Kids kidsList) fmtr
+  Node (id ++ "-HG") label "a horizontal grouping" (Group Widget.Data.Horizontal) fmtr (Widget.Data.KidsList kidsList)
 
 aSwitch : String -> String -> List Node -> Node
 aSwitch id label kidsList =
@@ -142,15 +154,20 @@ aSwitch id label kidsList =
         Nothing  -> ""
         Just kid -> kid.id
   in
-    Node (id ++ "-SW") label "a switch" (Switch fkid) (KidsList kidsList) SelectedKidFmtr
+    --Node (id ++ "-SW") label "a switch" (Switch fkid) (Widget.Data.Kids kidsList) SelectedKidFmtr
+    Node (id ++ "-SW") label "a switch" (Switch fkid) SelectedKidFmtr (KidsList kidsList)
 
 aBool : Id -> String -> String -> String -> Node
 aBool id label descr cmdTrue =
-  Node (id ++ "_B") label descr (BoolValue False) (KidsList []) (BoolFmtr cmdTrue "")
+  --Node (id ++ "_B") label descr (BoolValue False) (KidsList []) (BoolFmtr cmdTrue "")
+  --Node (id ++ "_B") label descr (BoolValue False) Widget.Data.Leaf (BoolFmtr cmdTrue "")
+  Node (id ++ "_B") label descr (BoolValue False) (BoolFmtr cmdTrue "") NoKids
 
 aBoolX : Id -> String -> String -> Bool -> String -> String -> Node
 aBoolX id label descr flag cmdTrue cmdFalse =
-  Node (id ++ "_BX") label descr (BoolValue flag) (KidsList []) (BoolFmtr cmdTrue cmdFalse)
+  --Node (id ++ "_BX") label descr (BoolValue flag) (KidsList []) (BoolFmtr cmdTrue cmdFalse)
+  --Node (id ++ "_BX") label descr (BoolValue flag) Widget.Data.Leaf (BoolFmtr cmdTrue cmdFalse)
+  Node (id ++ "_BX") label descr (BoolValue flag) (BoolFmtr cmdTrue cmdFalse) NoKids
 
 aBooT : Id -> String -> String -> String -> Node
 aBooT id label descr cmdTrue =
@@ -161,7 +178,9 @@ aString id label descr cmdFmt =
   let
     strValue = StringValue (validateFormatForParam cmdFmt)
   in
-    Node (id ++ "_S") label descr strValue (KidsList []) (StringFmtr cmdFmt)
+    --Node (id ++ "_S") label descr strValue (KidsList []) (StringFmtr cmdFmt)
+    --Node (id ++ "_S") label descr strValue Widget.Data.Leaf (StringFmtr cmdFmt)
+    Node (id ++ "_S") label descr strValue (StringFmtr cmdFmt) NoKids
 
 validateFormatForParam : String -> String
 validateFormatForParam cmdFmt =
@@ -170,15 +189,28 @@ validateFormatForParam cmdFmt =
       else
         "!! format MUST contain '{{}}' !!"
 
+{-------------------------------------------------
+kidsOf : Node -> List Node
+kidsOf node =
+  case node.tree of
+    Widget.Data.Kids kids_l ->
+      kids_l
+    Leaf ->
+      []
+-------------------------------------------------}
+
 kidsOf : Node -> List Node
 kidsOf node =
   case node.kids of
-    KidsList kids_l ->
-      kids_l
+    KidsList kids_l -> kids_l
+    NoKids          -> []
 
+{-------------------------------------------------
 flatKidsList : Node -> List Node
 flatKidsList node =
   List.foldl List.append [] (List.map flatKidsList (kidsOf node))
+-------------------------------------------------}
+
 
 {-------------------------------------------------
 treeToJson : Int -> Node -> String
@@ -261,7 +293,8 @@ decodeNode =
 
 nodeToJson : Int -> Node -> String
 nodeToJson indent node =
-  Json.Encode.encode indent (encodeNode { node | kids = KidsList [] } )
+  --Json.Encode.encode indent (encodeNode { node | kids = KidsList [] } )
+  Json.Encode.encode indent (encodeNode node)
 
 
 nodeAsHtmlLI : Node -> Html Msg
@@ -420,6 +453,7 @@ mapUpdate f node =
     ( newKids, cmds ) = List.unzip ( List.map (mapUpdate f) (kidsOf node) )
   in
     ( { newNode | kids = KidsList newKids }
+    --( { newNode | tree = Kids newKids }
     , Cmd.batch ( cmd :: cmds ) )
 -----------------------------------------------------------}
 

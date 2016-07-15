@@ -19,7 +19,6 @@ decodeWidget =
   Json.Decode.object1 Widget
     --( withDefault -33 ( "id" := int ) )
     ( "id" := Json.Decode.string )
-    -- (withDefault Leaf ( "tree" := decodeTree ) )
 
 type WidgetTree
     = WidgetLeaf
@@ -29,13 +28,26 @@ type WidgetTree
 -}
 decodeWidgetTree : Json.Decode.Decoder WidgetTree
 decodeWidgetTree =
+  let
+    treeList =
+      Json.Decode.list decodeWidgetTree
+
+    lazyTree_WORKS =
+      Json.Decode.Extra.lazy
+        (\_ -> (Json.Decode.list decodeWidgetTree))
+
+    lazyTree_HANGS =
+      Json.Decode.Extra.lazy
+        (\_ -> treeList)
+  in
   Json.Decode.object2 WidgetNode
-    --( "id" := 
-    decodeWidget --)
-    -- (withDefault [] ("kids" := lazy (\_ -> -- map Node -- (list decodeTree))) )
+    decodeWidget
     ( Json.Decode.Extra.withDefault [] (
-      "kids" := Json.Decode.Extra.lazy
-                (\_ -> (Json.Decode.list decodeWidgetTree)) ) )
+--      "kids" := lazyTree_WORKS ) )
+      "kids" := lazyTree_HANGS ) )
+      
+        -- Json.Decode.Extra.lazy
+                --(\_ -> (Json.Decode.list decodeWidgetTree)) ) )
 
 
 

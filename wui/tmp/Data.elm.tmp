@@ -36,15 +36,20 @@ type alias Node =
   , label    : String
   , descr    : String
   , value    : Value
+--, kids     : Kids
+--, kids     : Maybe List Node
+  , tree     : Tree
   , fmtr     : Formatter
-  , kids     : Kids
   }
 
 type alias Id = String
 
-type Kids
-  = NoKids
-  | KidsList ( List Node )
+{----------------------------------}
+--type Kids
+--  = KidsList ( List Node )
+type Tree
+  = Kids ( List Node )
+  | Leaf
 
 type Value
   = BoolValue Bool
@@ -79,10 +84,13 @@ decodeNode =
         |: ("label" := Json.Decode.string)
         |: ("descr" := Json.Decode.string)
         |: ("value" := decodeValue)
+        --|: ("kids" := decodeKids)
+        |: ("tree" := decodeTree)
         |: ("fmtr" := decodeFormatter)
-      --|: ("kids" := decodeKids)
-        |: (Json.Decode.Extra.withDefault NoKids ("kids" := decodeKids))
-        -- !! -- ("kids" := treeNode))
+
+
+   --("children" := list (lazy (\_ -> treeNode)))
+
 
 encodeNode : Node -> Json.Encode.Value
 encodeNode record =
@@ -91,16 +99,11 @@ encodeNode record =
         , ("label", Json.Encode.string record.label)
         , ("descr", Json.Encode.string record.descr)
         , ("value", encodeValue record.value)
+        --, ("kids", encodeKids record.kids)
+        , ("tree", encodeTree record.tree)
         , ("fmtr", encodeFormatter record.fmtr)
-        , ("kids", encodeKids record.kids)
         ]
 
-{---------------------------------------------------}
-{-| Json Decoder for a recursive data structure
--}
-decodeKidsList : Json.Decode.Decoder (List Node)  -- Kids
-decodeKidsList =
-  Json.Decode.Extra.lazy (\_ -> (Json.Decode.list decodeNode))
 
 decodeId : Json.Decode.Decoder String
 decodeId =
@@ -170,23 +173,55 @@ encodeValue v =
       Json.Encode.object [ ("switch", Json.Encode.string currSelectedKid ) ]
 
 
+decodeTree : Json.Decode.Decoder Tree
+decodeTree =
+    Json.Decode.oneOf [
+      Json.Decode.map  Kids ( Json.Decode.list decodeNode )
+    , Json.Decode.null Leaf
+    ]
+
+encodeTree : Tree -> Json.Encode.Value
+encodeTree tree =
+    case tree of
+        Kids kids_l ->
+            Json.Encode.list ( List.map encodeNode kids_l )
+        Leaf ->
+            Json.Encode.list []
+
+{---------------------------------------
 decodeKids : Json.Decode.Decoder Kids
 decodeKids =
-    Json.Decode.Extra.lazy (\_ -> Json.Decode.map KidsList ( Json.Decode.list decodeNode ))
+    Json.Decode.maybe ( Json.Decode.list decodeNode )
 
+decodeKids =
+    -- Json.Decode.map KidsList ( Json.Decode.list decodeNode )
+    Json.Decode.map KidsList ( Json.Decode.list (Json.Decode.Extra.lazy (\_ -> decodeNode)) )
 
-
+   --- ("children" := list (lazy (\_ -> treeNode)))
+---------------------------------------
 
 
 encodeKids : Kids -> Json.Encode.Value
 encodeKids kidsItem =
     case kidsItem of
-        KidsList kids_l ->
+        Just kids_l ->
             Json.Encode.list ( List.map encodeNode kids_l )
-        NoKids ->
+        Nothing ->
             Json.Encode.list []
+---------------------------------------}
+
+--encodeKids kidsItem =
+--    case kidsItem of
+--        KidsList kids_l ->
+--            Json.Encode.list ( List.map encodeNode kids_l )
 
 
+--type Formatter
+--  = BoolFmtr String String
+--  | StringFmtr String
+--  | KidsListFmtr String String
+--  | KidsByIdFmtr String String
+--  | SelectedKidFmtr
 decodeFormatter : Json.Decode.Decoder Formatter
 decodeFormatter =
     Json.Decode.oneOf [
