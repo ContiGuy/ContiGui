@@ -6,32 +6,31 @@ import Json.Decode.Extra exposing (withDefault, lazy)
 
 type alias Record =
   { id : Int
-  , tree : Tree
+  --, tree : Tree
   }
 
-emptyRec =
-  Record 0 Leaf
+--emptyRec =
+--  Record 0   -- Leaf
 
 decodeRecord =
-  object2 Record
-    ( "id" := int )
-    (withDefault Leaf ( "tree" := decodeTree ) )
-    
+  object1 Record
+    ( withDefault -33 ( "id" := int ) )
+    -- (withDefault Leaf ( "tree" := decodeTree ) )
 
 type Tree
     = Leaf
-    | Node ( List Tree )
+    | Node Record ( List Tree )
 
 {-| Json Decoder for a recursive data structure
 -}
 decodeTree : Json.Decode.Decoder Tree
 decodeTree =
-  object1
+  object2
     Node
-    -- ("name" := string)
-    --(withDefault Leaf
+    (map Record (withDefault -33 ("id" := int)))
+    (withDefault []
         ("kids" := lazy (\_ -> -- map Node
-           (list decodeTree))) --)
+           (list decodeTree))) )
         -- !! -- ("kids" := treeNode))
 
 decodeStr2LI : Json.Decode.Decoder a -> String -> Html b
