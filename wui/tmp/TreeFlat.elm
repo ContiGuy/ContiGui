@@ -38,7 +38,7 @@ getRecName id a =
 getWrap : Int -> Array.Array Wrap -> Wrap
 getWrap id a =
   case (Array.get id a) of
-    Nothing -> notFoundWrap
+    Nothing -> notFoundWrap <| "idx " ++ (toString id) ++ " not found"
     Just wrap -> wrap
 
 flatten : Record -> Array.Array Wrap
@@ -81,26 +81,29 @@ deflatten a =
   in
     case Array.get 0 nModel.a of
       Nothing ->
-        notFoundRec
+        notFoundRec "Idx 0 in Array not found"
       Just wrap ->
         wrap.rec
 
-notFoundRec : Record
-notFoundRec =
-  Record "NOT FOUND" (Node [])
+notFoundRec : String -> Record
+notFoundRec errMsg =
+  Record errMsg (Node [])
 
-notFoundWrap : Wrap
-notFoundWrap =
-  Wrap notFoundRec -1111 -11111 "NOT FOUND"
+notFoundWrap : String -> Wrap
+notFoundWrap errMsg =
+  Wrap (notFoundRec errMsg) -1111 -11111 "NOT FOUND"
 
 deflattenHelper : Wrap -> Model -> Model
 deflattenHelper loopWrap model =
   let
     parId = wrap.parent
     parWrap =
+      getWrap parId model.a
+      {-----------------------------------------------------
       case (Array.get parId model.a) of
-        Nothing -> notFoundWrap
+        Nothing -> notFoundWrap <| "idx " ++ (toString parId) ++ " not found"
         Just w  -> w
+      -----------------------------------------------------}
     parRec =
       parWrap.rec
     wrap =
@@ -112,6 +115,78 @@ deflattenHelper loopWrap model =
     { model | a = Array.set parId nParWrap model.a }
 
 
---main : Html a
---main =
---  ulOf [t1, t2, t5]
+testRecsAsHtml : List Record -> Html a
+testRecsAsHtml recs_l =
+  ulOf flatten toString deflatten recs_l
+
+main : Html a
+main =
+  testRecsAsHtml [t1, t2, t5]
+
+
+
+{---------------------------------------------------------
+---------------------------------------------------------}
+
+ulOf : (record -> flaTree) -> (flaTree -> String) -> (flaTree -> record) -> List record -> Html a
+ulOf flatten flaToString deflatten recList =
+  ul [] ( List.concat (List.map (liPair flatten flaToString deflatten) recList) )
+
+liPair : (record -> flaTree) -> (flaTree -> String) -> (flaTree -> record) -> record -> List (Html a)
+liPair flatten flaToString deflatten rec =
+  let
+    flaTree = flatten rec
+  in
+    [ li [] [ text <| toString rec ]
+    , ul [] [
+        li [] [ text <| flaToString <| flaTree ]
+      , li [] [ text <| toString <| deflatten flaTree ]
+      ]
+    ]
+
+t1 : Record
+t1 = Record "r1" (Node [t2, t3])
+t2 : Record
+t2 = Record "r2" (Node [t4, t5])
+t3 : Record
+t3 = Record "r3" (Node [])
+t4 : Record
+t4 = Record "r4" (Node [])
+t5 : Record
+t5 = Record "r5" (Node [t6, t7])
+t6 : Record
+t6 = Record "r6" (Node [])
+t7 : Record
+t7 = Record "r7" (Node [])
+
+{---------------------------------------------------------
+reflattenTestSuite : String -> List Record -> Test
+reflattenTestSuite sname treeList =
+  let
+    reflat tree =
+      ( tree, deflatten (flatten tree) )
+    (otrees, ptrees) = List.unzip <| List.map reflat treeList
+  in
+    suite sname <| List.map defaultTest <| assertionList otrees ptrees
+
+jsonizeTestSuite : String -> List Record -> Test
+jsonizeTestSuite sname treeList =
+  let
+    deJsonizedWraps tree =
+      case tree |> flatten |> wraps2json |> json2wraps of
+        Err _ -> Array.empty
+        Ok wraps_a -> wraps_a
+    jsonize tree =
+      ( tree, tree |> deJsonizedWraps |> deflatten )
+    (otrees, ptrees) = List.unzip <| List.map jsonize treeList
+  in
+    suite sname <| List.map defaultTest <| assertionList otrees ptrees
+
+myTest : Test
+--myTest = testSuite "tree de-flatten" [t1, t2, t3, t4, t5, t6, t7]
+myTest = jsonizeTestSuite "tree jsonize" [t1, t2, t3, t4, t5, t6, t7]
+
+main : Program Never
+main =
+  runSuiteHtml myTest
+---------------------------------------------------------}

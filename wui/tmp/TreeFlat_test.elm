@@ -1,7 +1,9 @@
 module TreeFlat_test exposing (..)
 
 import Util.TreeFlat exposing (..)
+import Util.TreeJson exposing (..)
 
+import Array
 import ElmTest       exposing (..)
 import Html          exposing (..)
 
@@ -53,8 +55,8 @@ t6 = Record "r6" (Node [])
 t7 : Record
 t7 = Record "r7" (Node [])
 
-testSuite : String -> List Record -> Test
-testSuite sname treeList =
+reflattenTestSuite : String -> List Record -> Test
+reflattenTestSuite sname treeList =
   let
     reflat tree =
       ( tree, deflatten (flatten tree) )
@@ -62,9 +64,33 @@ testSuite sname treeList =
   in
     suite sname <| List.map defaultTest <| assertionList otrees ptrees
 
-myTest : Test
-myTest = testSuite "tree de-flatten" [t1, t2, t3, t4, t5, t6, t7]
+jsonizeTestSuite : String -> List Record -> Test
+jsonizeTestSuite sname treeList =
+  let
+    deJsonizedWraps tree =
+      case tree |> flatten |> wraps2json |> json2wraps of
+        Err _ -> Array.empty
+        Ok wraps_a -> wraps_a
+    jsonize tree =
+      ( tree, tree |> deJsonizedWraps |> deflatten )
+    (otrees, ptrees) = List.unzip <| List.map jsonize treeList
+  in
+    suite sname <| List.map defaultTest <| assertionList otrees ptrees
 
-main : Program Never
+myTest : List Record -> Test
+--myTest = testSuite "tree de-flatten" [t1, t2, t3, t4, t5, t6, t7]
+myTest recs =
+  jsonizeTestSuite "tree jsonize" recs
+
+--main : Program Never
+main : Html a
 main =
-  runSuiteHtml myTest
+  let
+    recs = [t1, t2, t3, t4, t5, t6, t7]
+  in
+    ul [] [
+      li [] [ 
+        text <| stringRunner <| myTest recs
+      ]
+    , Util.TreeJson.testRecsAsHtml recs
+  ]
