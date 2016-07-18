@@ -99,11 +99,6 @@ deflattenHelper loopWrap model =
     parId = wrap.parent
     parWrap =
       getWrap parId model.a
-      {-----------------------------------------------------
-      case (Array.get parId model.a) of
-        Nothing -> notFoundWrap <| "idx " ++ (toString parId) ++ " not found"
-        Just w  -> w
-      -----------------------------------------------------}
     parRec =
       parWrap.rec
     wrap =
@@ -160,33 +155,4 @@ t7 : Record
 t7 = Record "r7" (Node [])
 
 {---------------------------------------------------------
-reflattenTestSuite : String -> List Record -> Test
-reflattenTestSuite sname treeList =
-  let
-    reflat tree =
-      ( tree, deflatten (flatten tree) )
-    (otrees, ptrees) = List.unzip <| List.map reflat treeList
-  in
-    suite sname <| List.map defaultTest <| assertionList otrees ptrees
-
-jsonizeTestSuite : String -> List Record -> Test
-jsonizeTestSuite sname treeList =
-  let
-    deJsonizedWraps tree =
-      case tree |> flatten |> wraps2json |> json2wraps of
-        Err _ -> Array.empty
-        Ok wraps_a -> wraps_a
-    jsonize tree =
-      ( tree, tree |> deJsonizedWraps |> deflatten )
-    (otrees, ptrees) = List.unzip <| List.map jsonize treeList
-  in
-    suite sname <| List.map defaultTest <| assertionList otrees ptrees
-
-myTest : Test
---myTest = testSuite "tree de-flatten" [t1, t2, t3, t4, t5, t6, t7]
-myTest = jsonizeTestSuite "tree jsonize" [t1, t2, t3, t4, t5, t6, t7]
-
-main : Program Never
-main =
-  runSuiteHtml myTest
 ---------------------------------------------------------}

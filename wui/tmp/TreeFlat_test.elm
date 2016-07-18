@@ -8,20 +8,6 @@ import ElmTest       exposing (..)
 import Html          exposing (..)
 
 
---myTest = defaultTest (5 `assertEqual` 5)
-
-ul1Of : Record -> Html a
-ul1Of tree =
-  let
-    flaTree = flatten tree
-  in
-    ul [] [
-      li [] [ text <| toString tree ]
-    , ul [] [
-        li [] [ text <| toString <| flaTree ]
-      , li [] [ text <| toString <| deflatten flaTree ]
-      ]
-    ]
 
 ulOf : List Record -> Html a
 ulOf treeList =
@@ -33,7 +19,6 @@ liPair tree =
     flaTree = flatten tree
   in
     [ li [] [ text <| toString tree ]
-    --, ul [] [ li [] [ text <| toString <| flatten tree ] ]
     , ul [] [
         li [] [ text <| toString <| flaTree ]
       , li [] [ text <| toString <| deflatten flaTree ]
@@ -78,11 +63,9 @@ jsonizeTestSuite sname treeList =
     suite sname <| List.map defaultTest <| assertionList otrees ptrees
 
 myTest : List Record -> Test
---myTest = testSuite "tree de-flatten" [t1, t2, t3, t4, t5, t6, t7]
 myTest recs =
   jsonizeTestSuite "tree jsonize" recs
 
---main : Program Never
 main : Html a
 main =
   let
