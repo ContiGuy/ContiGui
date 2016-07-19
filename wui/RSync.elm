@@ -31,7 +31,7 @@ import Http              exposing (..)
 import Task
 --import String
 import Json.Decode as JD exposing ((:=))
-import Json.Encode                          -- as JE
+import Json.Encode
 
 
 main : Program Never
@@ -47,9 +47,8 @@ main =
 -- MODEL
 
 type alias Model =
-  { id           : String
+  { currJobName  : String
   , combo        : ComboBox.Model
-  --, saveErr      : Maybe Http.Error
   , lastErr      : Maybe Http.Error
   , lastOk       : Maybe String
 
@@ -57,7 +56,9 @@ type alias Model =
   , debug        : Util.Debug.Model
 
   -- widgets
-  , root         : Node
+  --, root         : Node
+  --, rsynJobType  : JobType.JobType
+  , jobs         : List JobType.Job
   }
 
 
@@ -78,31 +79,35 @@ type alias Model =
 init : (Model, Cmd Msg)
 init =
   let
-    --( root, nodes ) = aRoot "RSync" [
+  {-------------------------------------
     root = aRoot "RSync" [
       RSyncConfig.init
     ] (fmtList "rsync {{}} # ..." " ")
+    --rsyncJobType =
+      --JobType.JobType [] "rsync" "RSync"
+  ----------------------------------------------}
+    model =
+      Model "" ComboBox.init Nothing (Just "started") "" Util.Debug.init
+        --initialRootNode
+         []
   in
-    ( Model "" ComboBox.init Nothing (Just "started") "" Util.Debug.init root
-    , Cmd.none )
+    model ! []
+    --( Model "" ComboBox.init Nothing (Just "started") "" Util.Debug.init root
+    --, Cmd.none )
+
+initialRootNode : Node
+initialRootNode =
+    aRoot "RSync" [
+      RSyncConfig.init
+    ] (fmtList "rsync {{}} # ..." " ")
+
+getRootNode : Model -> Node
+getRootNode model =
+  case List.head <| List.filter (\ j -> j.name == model.currJobName) model.jobs of
+    Nothing -> initialRootNode
+    Just job -> job.root
 
 {-----------------------------------
-type alias RSyncJob =
-  { job  : JobType.Job
-  , node : Node
-  }
-
-initJob : String -> Model -> RSyncJob
-initJob jobName model =
-  RSyncJob (JobType.Job "" "" jobName "RSync") model.root
------------------------------------
-
-encodeRSyncJob : RSyncJob -> Json.Encode.Value
-encodeRSyncJob rsjob =
-  Json.Encode.object [
-    ( "job", JobType.encodeJob rsjob.job )
-  , ( "root", Widget.Data.encodeNode rsjob.node )
-  ]
 -----------------------------------}
 
 
@@ -120,22 +125,32 @@ type Msg =
   | JobsLoadRequested
   | LoadJobsFail Http.Error
   | LoadJobsSucceed JobType.JobTypes
---  | LoadJobsSucceed JobType.LoadJobsResult
 
---    | Save
 --    | ToggleDebug Bool
---    | EditCfgName String
---    | SetCfgName String
+
+replaceRootNode : Model -> Node -> JobType.Job -> JobType.Job
+replaceRootNode model newRootNode job =
+  if job.name == model.currJobName then
+    { job
+    | root = newRootNode
+    }
+  else
+    job
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
       CallWidget wMsg ->
         let
-          ( newRoot, cmd ) = W.update wMsg model.root
+          ( newRootNode, cmd ) = W.update wMsg   -- model.root
+                                <| getRootNode model
+          newJobs =
+            --List.map (\j -> if j.name == model.currJobName then { j | root = newRoot } else j) model.jobs
+            List.map (replaceRootNode model newRootNode) model.jobs
         in
           { model
-          | root = newRoot
+          --| root = newRoot
+          | jobs = newJobs
           , lastOk = Nothing
           } ! [ Cmd.map CallWidget cmd ]
 
@@ -160,9 +175,25 @@ update msg model =
         let
           msgStr = Debug.log "RSync.JobSelect" str
           ( nCombo, nCbMsg ) = ComboBox.update (ComboBox.Select msgStr) model.combo
+          
+          {-----------------------------------------------------------------------
+          switchJob jname job =
+            if jname == job.name then
+              
+          
+          newJobs =
+            List.map (\ j -> ) model.jobs
+          
+          newRoot =
+            case List.head <| List.filter (\j -> j.name == str) model.jobs of
+              Nothing  -> model.root
+              Just job -> job.root
+          -----------------------------------------------------------------------}
         in
           { model
-          | combo = nCombo
+          | combo  = nCombo
+          --, root   = newRoot
+          , currJobName = msgStr
           , lastOk = Nothing
           } ! [ Cmd.map ComboMsg nCbMsg ]
 
@@ -218,13 +249,23 @@ update msg model =
               jtName = Debug.log "LoadJobsSucceed, found job type" jobType.name
             in
               jtName == "RSync"
-          optJobType = List.filter rsyncJobsOnly loadedJobs.jobTypes |> List.head
+          optJobType =
+            List.filter rsyncJobsOnly loadedJobs.jobTypes |> List.head
+          rsyncJobs =
+            case optJobType of
+              Just rsyncJT ->
+                rsyncJT.jobs
+              Nothing ->
+                []
           jobNames =
+            List.map .name rsyncJobs
+            {-----------------------------------
             case optJobType of
               Just rsyncJT ->
                 List.map .name rsyncJT.jobs
               Nothing ->
                 []
+            -----------------------------------}
           
           newOpts =
             ComboBox.NewOptions <| "" :: jobNames
@@ -234,6 +275,7 @@ update msg model =
           { model
           | combo = nCombo
           , output = toString loadedJobs
+          , jobs = rsyncJobs
           , lastErr = Nothing
           , lastOk = Just "jobs loaded"
           } ! [ Cmd.map ComboMsg nCbMsg ]
@@ -250,17 +292,9 @@ loadJobs : Model -> Cmd Msg
 loadJobs model =
   let
     url = "/jobs/RSync"
-    -- body_s = W.jobAsJson 2 jobName model.root
-    -- httpCall = Http.get decodeJobsLoaded url -- (Http.string body_s)
-    -- httpCall = Http.get JobType.decodeJobTypes url
     httpCall = Http.get decodeJobTypes url
-    ---httpCall = Http.getString url
   in
-    -- Task.perform LoadJobsFail LoadJobsSucceed ( decodeXXX httpCall )
     Task.perform LoadJobsFail LoadJobsSucceed httpCall
-
---decodeXXX s =
-  --JobType.JobTypes s
 
 decodeJobTypes : JD.Decoder JobType.JobTypes
 decodeJobTypes =
@@ -272,11 +306,10 @@ decodeJobTypes =
 
 initJob : String -> Model -> JobType.Job
 initJob jobName model =
-  JobType.Job "" "" jobName "RSync" "dunno what to do !" model.root
+  JobType.Job "" "" jobName "RSync" "dunno what to do !" -- model.root
+    <| getRootNode model
 
 {--------------------------------------
-encodeRSyncJob job =
-  JobType.encodeJob job
 --------------------------------------}
 
 
@@ -286,7 +319,6 @@ saveJob jobName model =
     url = "/jobs/RSync"
     body_s =
       initJob jobName model
-        --- |> encodeRSyncJob
         |> JobType.encodeJob
         |> Json.Encode.encode 2
     
@@ -335,7 +367,8 @@ view model =
 viewBody : Model -> Html.Html Msg
 viewBody model =
   let
-    (n, v) = W.viewRoot model.root
+    -- (n, v) = W.viewRoot model.root
+    (n, v) = W.viewRoot <| getRootNode model
   in
     Html.div [] [
       Html.App.map CallWidget v
@@ -343,26 +376,6 @@ viewBody model =
     ]
 
 {------------------------------------------------------------
-  let
-    ( rootName, rootView ) = W.viewRoot model.root
-    jobName = model.cfgName
-    jobNameEmpty = String.isEmpty ( String.trim jobName )
-  in
-    div [] [
-      table [] [ tr [] [
-        td [] [ label [] [ text "Configuration" ] ]
-      , td [] [ input [
-                  type' "text"
-                , value model.cfgName
-                , onInput EditCfgName
-                ] [] ]
-      , td [] [ button [ onClick Save, disabled jobNameEmpty ] [ text "Save" ] ]
-      ] ]
-    , Html.App.map CallWidget rootView
-    , h3 [] [ text "Output" ]
-    , text model.output
---    , dbg
-    ]
 ------------------------------------------------------------}
 
 
@@ -381,13 +394,9 @@ viewHead labelText model allowToSave =
     errHtml =
       case model.lastErr of
         Just err ->
-          Html.b [ Html.Attributes.style [
-            --("backgroundColor", "green")
-          --,
-            ("color", "red")
---        , ("height", "90px")
---        , ("width", "100%")
-          ] ] [
+          Html.b [
+            Html.Attributes.style [ ("color", "red") ]
+          ] [
             Html.text ( "   !! " ++ ( toString err ) ++ " !!" )
           ]
         
