@@ -52,17 +52,6 @@ insertKid : Node -> Node -> Node
 insertKid newKid node =
   { node | kids = Kids ( newKid :: (kidsOf node) ) }
 
-getWrap : Int -> Array.Array Wrap -> Wrap
-getWrap id wa =
-  case (Array.get id wa) of
-    Nothing -> notFoundWrap <| "idx " ++ (toString id) ++ " not found"
-    Just wrap -> wrap
-
-getNodeWithDefault : Int -> Array.Array Node -> Node -> Node
-getNodeWithDefault id na defNode =
-  case (Array.get id na) of
-    Nothing -> defNode  -- notFoundNode <| "idx " ++ (toString id) ++ " not found"
-    Just node -> node
 
 flatten : Node -> Array.Array Wrap
 flatten node =
@@ -124,40 +113,52 @@ deflattenRecordsHelper wrap model =
   in
     { model | na = Array.push (Node loggedWrap.rec (Kids [])) model.na }
 
+
+getNodeWithDefault : Int -> Array.Array Node -> Record -> Node
+getNodeWithDefault id nodeArray defaultRecord =
+  Maybe.withDefault
+    ( Node defaultRecord (Kids []) )
+    ( Array.get id nodeArray )
+
+
 deflattenNodesHelper : Wrap -> DModel -> DModel
 deflattenNodesHelper loopWrap model =
   let
-    -- id = loopWrap.id
     node =
       getNodeWithDefault loopWrap.id model.na
-        <| Node loopWrap.rec (Kids [])
+        loopWrap.rec
+
+    logMsg =
+      "deflatten: set new node @ " ++ (toString loopWrap.id)
     loggedNode =
-      Debug.log ("deflatten: set new node @ " ++ (toString loopWrap.id)) node
+      Debug.log logMsg node
 
     modelWithNode =
-      { model | na = Array.set loopWrap.id loggedNode model.na }
-
-    parNode =
-      getNodeWithDefault loopWrap.parent model.na
-        <| Node (notFoundRec "Not Yet Unwrapped") (Kids [])
-    newParNode =
-      insertKid node parNode
-
-    loggedParNode =
-      Debug.log ("deflatten: set new parent node @ " ++ (toString loopWrap.parent)) newParNode
-    
-    modelWithParent =
-      if loopWrap.parent >= 0 then
-        { modelWithNode | na = Array.set loopWrap.parent loggedParNode model.na }
-      else
-        modelWithNode
+      { model
+      | na = Array.set loopWrap.id loggedNode model.na
+      }
   in
-    modelWithParent
+    if loopWrap.parent < 0 then
+      modelWithNode
+    else
+      let
+        parNode =
+          getNodeWithDefault loopWrap.parent model.na
+            <| notFoundRec "Not Yet Unwrapped"
+        newParNode =
+          insertKid node parNode
+        logMsg =
+          "deflatten: set new parent node @ " ++ (toString loopWrap.parent)
+        loggedParNode =
+          Debug.log logMsg newParNode
+      in
+        { modelWithNode
+        | na = Array.set loopWrap.parent loggedParNode model.na
+        }
 
 
-testRecsAsHtml : List Node -> Html a
-testRecsAsHtml nodes_l =
-  ulOf flatten toString deflatten nodes_l
+{---------------------------------------------------------
+---------------------------------------------------------}
 
 main : Html a
 main =
@@ -165,9 +166,10 @@ main =
 --  testRecsAsHtml [t4]
 
 
+testRecsAsHtml : List Node -> Html a
+testRecsAsHtml nodes_l =
+  ulOf flatten toString deflatten nodes_l
 
-{---------------------------------------------------------
----------------------------------------------------------}
 
 ulOf : (record -> flaTree) -> (flaTree -> String) -> (flaTree -> record) -> List record -> Html a
 ulOf flatten flaToString deflatten recList =
@@ -190,26 +192,19 @@ sampleNode id kids_l =
   Node (Record ("r" ++ (toString id))) (Kids kids_l)
 
 t1 : Node
---t1 = Node (Record "r1") (Kids [t2, t3])
 t1 = sampleNode 1 [t2, t3]
 t2 : Node
---t2 = Node "r2" (Kids [t4, t5])
 t2 = sampleNode 2 [t4, t5]
 t3 : Node
 t3 = sampleNode 3 []
---t3 = Node "r3" (Kids [])
 t4 : Node
 t4 = sampleNode 4 []
---t4 = Node "r4" (Kids [])
 t5 : Node
 t5 = sampleNode 5 [t6, t7]
---t5 = Node "r5" (Kids [t6, t7])
 t6 : Node
 t6 = sampleNode 6 []
---t6 = Node "r6" (Kids [])
 t7 : Node
 t7 = sampleNode 7 []
---t7 = Node "r7" (Kids [])
 
 {---------------------------------------------------------
 ---------------------------------------------------------}
