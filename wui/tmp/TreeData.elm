@@ -20,7 +20,6 @@ type alias Wrap =
   { rec     : Record
   , id      : Int
   , parent  : Int
-  --, parName : String
   }
 
 type alias FModel =
@@ -30,17 +29,15 @@ type alias FModel =
 
 type alias DModel =
   { na    : Array.Array Node
-  --, id   : Int
-  --, tree : Node
   }
 
 notFoundRec : String -> Record
 notFoundRec errMsg =
-  Record errMsg   -- (Node [])
+  Record errMsg
 
 notFoundWrap : String -> Wrap
 notFoundWrap errMsg =
-  Wrap (notFoundRec errMsg) -1111 -11111    -- "NOT FOUND"
+  Wrap (notFoundRec errMsg) -1111 -11111
 
 notFoundNode : String -> Node
 notFoundNode errMsg =
@@ -54,14 +51,6 @@ kidsOf node =
 insertKid : Node -> Node -> Node
 insertKid newKid node =
   { node | kids = Kids ( newKid :: (kidsOf node) ) }
-
-{----------------------------------------------
-getRecName : Int -> Array.Array Wrap -> String
-getRecName id a =
-  case (Array.get id a) of
-    Nothing -> ""
-    Just wrap -> wrap.rec.n
-----------------------------------------------}
 
 getWrap : Int -> Array.Array Wrap -> Wrap
 getWrap id wa =
@@ -78,8 +67,7 @@ getNodeWithDefault id na defNode =
 flatten : Node -> Array.Array Wrap
 flatten node =
   let
-    --model = Model Array.empty 100 <| notFoundNode "NOT NEEDED for FLATTENing"
-    model = FModel Array.empty 100    -- <| notFoundNode "NOT NEEDED for FLATTENing"
+    model = FModel Array.empty 100
     fmodel = flattenHelp model [node] -100
   in
     fmodel.wa
@@ -99,7 +87,7 @@ flattenHelp model nodes_l parId =
         let
           nod = { node | kids = Kids [] }
           id = Array.length model.wa
-          wrap = Wrap nod.rec id parId     -- (getRecName parId model.a)
+          wrap = Wrap nod.rec id parId
           nModel = { model
                    | wa = Array.push wrap model.wa
                    , id = id
@@ -109,15 +97,15 @@ flattenHelp model nodes_l parId =
           flattenHelp kidsModel restNodes parId
 
 deflatten : Array.Array Wrap -> Node
-deflatten a =
+deflatten wa =
   let
-    --model = Model a -200 <| notFoundNode "NOT STARTED"
-    model = DModel Array.empty
-    modelWithRecords = Array.foldl deflattenRecordsHelper model a
-    modelWithNodes = Array.foldr deflattenNodesHelper modelWithRecords a
+    modelEmpty =
+      DModel Array.empty
+    modelWithRecords =
+      Array.foldl deflattenRecordsHelper modelEmpty wa
+    modelWithNodes =
+      Array.foldr deflattenNodesHelper modelWithRecords wa
   in
-    --nModel.tree
-    {--------------------------------------------}
     case Array.get 0 modelWithNodes.na of
       Nothing ->
         let
@@ -126,13 +114,12 @@ deflatten a =
           notFoundNode "Idx 0 in Array not found"
       Just node ->
         node
-    --------------------------------------------}
 
 deflattenRecordsHelper : Wrap -> DModel -> DModel
 deflattenRecordsHelper wrap model =
   let
     msgName =
-      "deflattenRecordsHelper @ " ++ (toString <| Array.length model.na)
+      "deflattenRecordsHelper set @ " ++ (toString <| Array.length model.na)
     loggedWrap = Debug.log msgName wrap
   in
     { model | na = Array.push (Node loggedWrap.rec (Kids [])) model.na }
@@ -150,28 +137,12 @@ deflattenNodesHelper loopWrap model =
     modelWithNode =
       { model | na = Array.set loopWrap.id loggedNode model.na }
 
---    parId = loopWrap.parent
     parNode =
       getNodeWithDefault loopWrap.parent model.na
         <| Node (notFoundRec "Not Yet Unwrapped") (Kids [])
-      {----------------------------
-      if model.id == parId then
-        model.tree
-      else
-        Node loopWrap.rec (Kids [])
-      ----------------------------}
     newParNode =
       insertKid node parNode
 
-    --parWrap =
-      --getWrap parId model.a
-    --parRec =
-      --parWrap.rec
-    --wrap =
-      --getWrap loopWrap.id model.a
-    --newParRec = { parRec | kids = Node (wrap.rec :: (kidsOf parRec) ) }
-    --newParWrap = { parWrap | rec = newParRec }
-    -- nParWrap = 7  -- Debug.log ("deflatten: new par wrap " ++ (toString parId)) newParWrap
     loggedParNode =
       Debug.log ("deflatten: set new parent node @ " ++ (toString loopWrap.parent)) newParNode
     
@@ -181,8 +152,6 @@ deflattenNodesHelper loopWrap model =
       else
         modelWithNode
   in
-    -- { model | a = Array.set parId nParWrap model.a }
-    -- { modelWithNode | na = Array.set parId nParNode model.na }
     modelWithParent
 
 
