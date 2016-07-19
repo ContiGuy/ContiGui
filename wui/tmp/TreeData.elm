@@ -1,20 +1,12 @@
 module Util.TreeData exposing (..)
 
+import Util.CoreData exposing (..)
+
 import Array
 import List
 
 import Html exposing (..)
 
-type alias Record =
-  { n    : String
-  }
-
-type alias Node =
-  { rec  : Record
-  , kids : Tree
-  }
-
-type Tree = Kids (List Node)
 
 type alias Wrap =
   { rec     : Record
@@ -30,27 +22,6 @@ type alias FModel =
 type alias DModel =
   { na    : Array.Array Node
   }
-
-notFoundRec : String -> Record
-notFoundRec errMsg =
-  Record errMsg
-
-notFoundWrap : String -> Wrap
-notFoundWrap errMsg =
-  Wrap (notFoundRec errMsg) -1111 -11111
-
-notFoundNode : String -> Node
-notFoundNode errMsg =
-  Node (notFoundRec errMsg) (Kids [])
-
-kidsOf : Node -> List Node
-kidsOf node =
-  case node.kids of
-    Kids kids_l -> kids_l
-
-insertKid : Node -> Node -> Node
-insertKid newKid node =
-  { node | kids = Kids ( newKid :: (kidsOf node) ) }
 
 
 flatten : Node -> Array.Array Wrap
@@ -85,13 +56,16 @@ flattenHelp model nodes_l parId =
         in
           flattenHelp kidsModel restNodes parId
 
+
+unwrapNode : Wrap -> Node
+unwrapNode wrap =
+  Node wrap.rec (Kids [])
+
 deflatten : Array.Array Wrap -> Node
 deflatten wa =
   let
-    modelEmpty =
-      DModel Array.empty
-    modelWithRecords =
-      Array.foldl deflattenRecordsHelper modelEmpty wa
+    modelWithRecords = DModel
+      <| Array.map unwrapNode wa
     modelWithNodes =
       Array.foldr deflattenNodesHelper modelWithRecords wa
   in
@@ -103,15 +77,6 @@ deflatten wa =
           notFoundNode "Idx 0 in Array not found"
       Just node ->
         node
-
-deflattenRecordsHelper : Wrap -> DModel -> DModel
-deflattenRecordsHelper wrap model =
-  let
-    msgName =
-      "deflattenRecordsHelper set @ " ++ (toString <| Array.length model.na)
-    loggedWrap = Debug.log msgName wrap
-  in
-    { model | na = Array.push (Node loggedWrap.rec (Kids [])) model.na }
 
 
 getNodeWithDefault : Int -> Array.Array Node -> Record -> Node
