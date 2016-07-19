@@ -24,6 +24,10 @@ import (
 	"conti-gui/wui"
 )
 
+const (
+	magicLine = "conti-gui job configuration for:"
+)
+
 type (
 	JobTypes struct {
 		JobTypes []JobType `json:"job_types,omitempty"`
@@ -41,14 +45,9 @@ type (
 	Job struct {
 		Name     string `json:"name,omitempty"`
 		TypeName string `json:"type_name,omitempty"`
-		//		Id   string
 		JsonSha1 string `json:"json_id,omitempty"`
 		YamlSha1 string `json:"yaml_id,omitempty"`
-
-		//		Root     Node   `json:",omitempty"` //--`json:"name"`
-
-		//--Root Node `json:"root"` //--`json:"name"`
-		Nodes []Wrap `json:"root"` //--`json:"name"`
+		Nodes    []Wrap `json:"root"` //--`json:"name"`
 	}
 
 	//type alias Record =
@@ -58,11 +57,9 @@ type (
 	//  , value    : Value
 	//  , fmtr     : Formatter
 	//  }
-
 	Record struct {
 		//		Id string `json:",omitempty"`
 		Id string `json:"id"`
-		//		Type        string `json:",omitempty"`
 		//		Label       string                 `json:",omitempty"`
 		Label string `json:"label"`
 		//		Description string                 `json:",omitempty"`
@@ -71,9 +68,6 @@ type (
 		Value map[string]interface{} `json:"value"`
 		//		CmdLet      string                 `json:",omitempty"`
 		//		CmdLet string `json:"cmdlet"`
-		//		//		Kids        []*Node                `json:",omitempty"`
-		//		Kids []*Node `json:"kids"`
-		//		//		IsActive *bool `json:"active"`
 		Fmtr map[string]interface{} `json:"fmtr"`
 	}
 
@@ -88,70 +82,6 @@ type (
 		Parent int    `json:"par-id"`
 	}
 
-	//type alias Node =
-	//  { rec  : Record
-	//  , kids : Tree
-	//  }
-
-	//type Tree = Kids (List Node)
-
-	//type Value
-	//  = BoolValue Bool
-	//  | StringValue String
-	//  | RootCmd
-	//  | Group Orientation
-	//  | Switch Id
-
-	//type Orientation
-	//  = Vertical
-	//  | Horizontal
-	//  | Disoriented
-
-	//type Formatter
-	//  = BoolFmtr String String
-	//  | StringFmtr String
-	//  | KidsListFmtr String String
-	//--  | KidsByIdFmtr String String
-	//  | SelectedKidFmtr
-
-	//	Node struct {
-	//		//		Id string `json:",omitempty"`
-	//		Id string `json:"id"`
-	//		//		Type        string `json:",omitempty"`
-	//		//		Label       string                 `json:",omitempty"`
-	//		Label string `json:"label"`
-	//		//		Description string                 `json:",omitempty"`
-	//		Description string `json:"descr"`
-	//		//		Value       map[string]interface{} `json:",omitempty"`
-	//		Value map[string]interface{} `json:"value"`
-	//		//		CmdLet      string                 `json:",omitempty"`
-	//		CmdLet string `json:"cmdlet"`
-	//		//		Kids        []*Node                `json:",omitempty"`
-	//		Kids []*Node `json:"kids"`
-	//		//		IsActive *bool `json:"active"`
-	//	}
-
-	//	Node struct {
-	//		//		Id string `json:",omitempty"`
-	//		Id string `json:"id"`
-	//		//		Type        string `json:",omitempty"`
-	//		//		Label       string                 `json:",omitempty"`
-	//		Label string `json:"label"`
-	//		//		Description string                 `json:",omitempty"`
-	//		Description string `json:"descr"`
-	//		//		Value       map[string]interface{} `json:",omitempty"`
-	//		Value map[string]interface{} `json:"value"`
-	//		//		CmdLet      string                 `json:",omitempty"`
-	//		CmdLet string `json:"cmdlet"`
-	//		//		Kids        []*Node                `json:",omitempty"`
-	//		Kids []*Node `json:"kids"`
-	//		//		IsActive *bool `json:"active"`
-	//	}
-
-	//	nodesById_M map[string]*Node
-
-	//	cmdletsById_M map[string]string
-
 	errHandler_T struct {
 		err error
 	}
@@ -160,7 +90,6 @@ type (
 func (eh *errHandler_T) safe(step func()) {
 	if eh.err == nil {
 		step()
-		//		eh.ifErr(func() { log.Printf("ERROR: %s\n", eh.err) })
 		eh.ifErr(func() { log.Error("ERROR", "err", eh.err) })
 	}
 }
@@ -177,65 +106,8 @@ func (job *Job) Check() error {
 		msg := fmt.Sprintf("MISSING job Name: %#v", *job)
 		return errors.New(msg)
 	}
-	//	if strings.TrimSpace(job.Root.Label) == "" {
-	//		//		return errors.New("MISSING job Root Label")
-	//		msg := fmt.Sprintf("MISSING job Root Label: %#v", *job)
-	//		return errors.New(msg)
-	//	}
-	//	return job.Root.ProcessTree()
-
 	return nil
 }
-
-//func (rsJob *RSyncJob) Check() error {
-//	//	if strings.TrimSpace(job.Name) == "" {
-//	//		msg := fmt.Sprintf("MISSING job Name: %#v", *job)
-//	//		return errors.New(msg)
-//	//	}
-//	err := rsJob.Job.Check()
-//	if err != nil {
-//		return err
-//	}
-
-//	if strings.TrimSpace(rsJob.Root.Label) == "" {
-//		//		return errors.New("MISSING job Root Label")
-//		msg := fmt.Sprintf("MISSING job Root Label: %#v", *rsJob)
-//		return errors.New(msg)
-//	}
-//	return rsJob.Root.ProcessTree()
-//}
-
-//func (node *Node) ProcessTree() error {
-//	nodesById_m := make(nodesById_M)
-
-//	cnf := func(n *Node) error {
-//		return n.CheckNode(nodesById_m)
-//	}
-
-//	return node.WalkTree(cnf)
-//}
-
-//func (node *Node) CheckNode(nodesById_m nodesById_M) error {
-//	altNode, ok := nodesById_m[node.Id]
-//	if ok {
-//		errMsg := fmt.Sprintf("Duplicate ID '%s':  %+v  <->  %+v",
-//			node.Id, altNode, node)
-//		return errors.New(errMsg)
-//	}
-//	nodesById_m[node.Id] = node
-//	return nil
-//}
-
-//func (node *Node) WalkTree(cnf func(*Node) error) error {
-//	for _, kid := range node.Kids {
-//		err := kid.WalkTree(cnf)
-//		if err != nil {
-//			return err
-//		}
-//	}
-
-//	return cnf(node)
-//}
 
 func ServeGin(port int, baseDir string, htmlFiles_l []string) error {
 	router := gin.Default()
@@ -290,7 +162,6 @@ func ServeGin(port int, baseDir string, htmlFiles_l []string) error {
 		time.Sleep(100 * time.Millisecond)
 		err := webbrowser.Open(url)
 		if err != nil {
-			//			log.Printf("FAILED to open url in browser: %s\n", err)
 			log.Error("FAILED to open url in browser", "err", err)
 		}
 	}()
@@ -309,11 +180,6 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 
 	log.Info("loading jobs", "jobTypeName", jobTypeName)
 
-	//	var jobs_ml []gin.H
-	//	var jobs_l []Job
-
-	//	var jobTypes []JobType
-	//	jobTypes_m := make(map[string]JobType)
 	jobType := JobType{
 		Name: jobTypeName,
 		Jobs: []Job{},
@@ -321,8 +187,7 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 
 	eh.safe(func() {
 		eh.forAllJobs(
-			baseDir, jobTypeName, "*", //-- jobName,
-			"", //	"."+cs, // toIgnore,
+			baseDir, jobTypeName, "*", "",
 
 			// cmdDir, jobTypeName, jobName
 			func(oldJobFPath string, oldJob_b []byte) error {
@@ -334,67 +199,28 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 					cfg_b, eh.err = extractYamlConfig(oldJob_b)
 				})
 				log.Info("extracted job config", "jobType", jobTypeName,
-					//--"jobfile", oldJobFPath,
 					"size", len(cfg_b))
 
 				var job Job
-				//				var rsJob RSyncJob
 				eh.safe(func() {
-					eh.err = yaml.Unmarshal(cfg_b, &job) //-- &rsJob)
+					eh.err = yaml.Unmarshal(cfg_b, &job)
 				})
+				var rootNode *Wrap
+				if len(job.Nodes) > 0 {
+					rootNode = &job.Nodes[0]
+				}
 				log.Info("parsed job", "jobType", jobTypeName,
-					//					"jobfile", oldJobFPath,
-					//					 "job.TypeName", rsJob.Job.TypeName, "name", rsJob.Job.Name)
 					"job.TypeName", job.TypeName,
 					"name", job.Name,
 					"nodes", len(job.Nodes),
-					"root", job.Nodes[0],
+					"root", rootNode,
 				)
 
-				//	JobTypes struct {
-				//		JobTypes []JobType `json:"job_types"`
-				//	}
-
-				//	JobType struct {
-				//		Id   string `json:"id"`
-				//		Name string `json:"name"`
-				//		Jobs []Job  `json:"jobs"`
-				//	}
-
-				//	RSyncJob struct {
-				//		Job  Job
-				//		Root Node //--`json:"name"`
-				//	}
-
-				//	Job struct {
-				//		Name     string `json:"name"`
-				//		TypeName string `json:"type_name"`
-				//		//		Id   string
-				//		JsonSha1 string `json:"json_id"`
-				//		YamlSha1 string `json:"yaml_id"`
-				//		//--Root     Node   //--`json:"name"`
-				//	}
-
 				eh.safe(func() {
-					//					if rsJob.Job.TypeName == jobTypeName {
-					//						jobType.Jobs = append(jobType.Jobs, rsJob.Job)
 					if job.TypeName == jobTypeName {
-						// FIXME: remove! this is just here to minimize the data traffic
-						//						job.Root.Kids = []*Node{}
-						//						job.Root = Node{}
 						jobType.Jobs = append(jobType.Jobs, job)
 					}
 				})
-
-				//				job_m := gin.H{
-				//					"name":    job.Name,
-				//					"json_id": job.JsonSha1,
-				//					"yaml_id": job.YamlSha1,
-				//					"cmd":     job.Root.CmdLet,
-				//				}
-
-				//				jobs_ml = append(jobs_ml, job_m)
-				//				jobs_l = append(jobs_l, job)
 
 				eh.ifErr(func() { c.AbortWithError(http.StatusInternalServerError, eh.err) })
 				return eh.err
@@ -411,22 +237,7 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 
 		log.Info("List Jobs return", "JobTypes", jt)
 
-		//		buf, eh.err = json.MarshalIndent(jt, "", "  ")
 		buf, eh.err = json.Marshal(jt)
-
-		//		res := gin.H{
-		//			"job_types": JobTypes
-		//				"name": jobTypeName,
-		//				"id":   "x0",
-		//				"jobs": jobs_l,
-		//			},
-		////			"job_type": gin.H{
-		////				"name": jobTypeName,
-		////				"id":   "x0",
-		////				"jobs": jobs_l,
-		////			},
-		//		}
-		//		c.JSON(http.StatusOK, res)
 	})
 
 	eh.safe(func() {
@@ -436,15 +247,14 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 	return eh.err
 }
 
-func /*(eh *errHandler_T)*/ extractYamlConfig(job_b []byte) (cfg_b []byte, err error) {
-	//	var cfg_b []byte
+func extractYamlConfig(job_b []byte) (cfg_b []byte, err error) {
 	jobScanner := bufio.NewScanner(bytes.NewBuffer(job_b))
 	isYaml := false
 	for jobScanner.Scan() {
 		line_s := jobScanner.Text()
-		if strings.HasPrefix(line_s, "# begin:  CoLiGui job configuration for:") {
+		if strings.HasPrefix(line_s, "# begin:  "+magicLine) {
 			isYaml = true
-		} else if strings.HasPrefix(line_s, "# end:  CoLiGui job configuration for:") {
+		} else if strings.HasPrefix(line_s, "# end:  "+magicLine) {
 			isYaml = false
 		}
 		if isYaml {
@@ -465,15 +275,11 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 
 	var body_b []byte
 	eh.safe(func() { body_b, eh.err = ioutil.ReadAll(c.Request.Body) })
-	//	msg1 := fmt.Sprintf("POSTed to /job/%s: %d bytes ...", cmd_s, len(body_b))
-	//	fmt.Println(msg1)
 	log.Info("POSTed to /job", "jobType", jobTypeName, "bytes", len(body_b))
 
 	var job Job
-	//	var rsJob RSyncJob
-	eh.safe(func() { eh.err = json.Unmarshal(body_b, &job) }) //--&rsJob) })
+	eh.safe(func() { eh.err = json.Unmarshal(body_b, &job) })
 	eh.safe(func() {
-		//		eh.err = rsJob.Check()
 		eh.err = job.Check()
 		eh.ifErr(func() {
 			body_s := string(body_b)
@@ -487,11 +293,7 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 		//		fmt.Printf("got '%s': err=%v\n", cmd_s, eh.err)
 	})
 
-	//	job := &rsJob.Job
 	eh.safe(func() {
-		//		jsonSha1 := eh.hashSha1(job, json.Marshal)
-		//		job.YamlSha1 = eh.hashSha1(job, yaml.Marshal)
-		//		job.JsonSha1 = jsonSha1
 		job.JsonSha1, job.YamlSha1 =
 			eh.hashSha1(job, json.Marshal),
 			eh.hashSha1(job, yaml.Marshal)
@@ -499,36 +301,28 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 
 	var job2_yb []byte
 	eh.safe(func() {
-		job2_yb, eh.err = yaml.Marshal(job) //--rsJob)
+		job2_yb, eh.err = yaml.Marshal(job)
 	})
 	log.Info("Marshal job to YAML", "jobType", jobTypeName, "size", len(job2_yb))
-	//	msg2 := fmt.Sprintf("MarshalIndent /job/%s: %d bytes ...",
-	//		cmd_s, len(job2_yb))
-	//	fmt.Println(msg2)
-	//		job.Root.CmdLet += msg2
 
-	timeStamp := "" // fmt.Sprintf("@ %[4]v", time.Now())
+	timeStamp := "" // fmt.Sprintf("@ %v", time.Now())
 	jobScript_b := []byte(fmt.Sprintf(`#!/bin/bash
 #
 # generated script - do not edit
 #
 cat <<EOYD | less
 #
-# begin:  CoLiGui job configuration for:  %[1]s - %[2]s  %[4]s
+# begin:  %[1]s  %[2]s - %[3]s  %[5]s
 #
 
-%[3]s
+%[4]s
 #
-# end:  CoLiGui job configuration for:  %[1]s - %[2]s  %[4]s
+# end:  %[1]s  %[2]s - %[3]s  %[5]s
 #
 EOYD
 `,
-		//		//		rsJob.Root.Label, rsJob.Job.Name, job2_yb, timeStamp))
-		//		job.Root.Label, job.Name, job2_yb, timeStamp))
-		job.TypeName, job.Name, job2_yb, timeStamp))
+		magicLine, job.TypeName, job.Name, job2_yb, timeStamp))
 
-	//	//	cmdFName := strings.TrimSpace(strings.ToLower(rsJob.Root.Label))
-	//	cmdFName := strings.TrimSpace(strings.ToLower(job.Root.Label))
 	cmdFName := strings.TrimSpace(strings.ToLower(job.TypeName))
 	cmdDir := filepath.Join(baseDir, cmdFName)
 	os.MkdirAll(cmdDir, 0777)
@@ -561,10 +355,9 @@ EOYD
 		cmdMsg = "# job saved as: " + jobFPath
 	}
 
-	//	eh.safe(func() {
 	eh.safe(func() {
 		eh.forAllJobs(
-			baseDir, cmdFName, jobName, "."+cs, // toIgnore,
+			baseDir, cmdFName, jobName, "."+cs,
 
 			// cmdDir, cmdName, jobName
 			func(oldJobFPath string, oldJob_b []byte) error {
@@ -573,14 +366,13 @@ EOYD
 			},
 		)
 	})
-	//	})
 
 	eh.safe(func() {
 		res := gin.H{
 			"job_name": job.Name,
 			"json_id":  job.JsonSha1,
 			"yaml_id":  job.YamlSha1,
-			"cmd":      cmdMsg, // job.Root.CmdLet,
+			"cmd":      cmdMsg,
 		}
 		c.JSON(http.StatusCreated, res)
 	})
@@ -610,7 +402,6 @@ func (eh *errHandler_T) forAllJobs(
 
 	getJobFPath := func(pat string) string {
 		return mkJobFPath(cmdDir, cmdFName, jobName, pat, false)
-		//		return mkJobFPath(cmdDir, cmdName, "*", pat, false)
 	}
 	jobFPathPat := getJobFPath("*")
 	jobFPathIgn := getJobFPath(toIgnore)
@@ -636,7 +427,6 @@ func (eh *errHandler_T) forAllJobs(
 func (eh *errHandler_T) hashSha1(
 	obj interface{},
 	marshal func(interface{}) ([]byte, error),
-	//	size int,
 ) (sha1Hash string) {
 	var buf_b []byte
 	if marshal == nil {
