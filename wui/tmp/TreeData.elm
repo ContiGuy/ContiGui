@@ -1,6 +1,7 @@
 module Util.TreeData exposing (..)
 
 import Util.CoreData exposing (..)
+import Util.CoreJson exposing (..)
 
 import Array
 import List
@@ -124,6 +125,45 @@ deflattenNodesHelper loopWrap model =
 
 {---------------------------------------------------------
 ---------------------------------------------------------}
+
+
+encWrap : Wrap -> Json.Encode.Value
+encWrap wrap =
+  Json.Encode.object [
+    ( "rec",     encRec wrap.rec )
+  , ( "id",      Json.Encode.int wrap.id )
+  , ( "par-id",  Json.Encode.int wrap.parent )
+  --, ( "par-n",   Json.Encode.string wrap.parName )
+  ]
+
+decWrap : Json.Decode.Decoder Wrap
+decWrap =
+  Json.Decode.object3 Wrap
+    ( "rec" := decRec )
+    ( "id" := Json.Decode.int )
+    ( "par-id" := Json.Decode.int )
+    --( "par-n" := Json.Decode.string )
+
+encWrapArray : Array.Array Util.TreeFlat.Wrap -> Json.Encode.Value
+encWrapArray wraps_l =
+  Json.Encode.array (Array.map encWrap wraps_l)
+
+decWrapArray : Json.Decode.Decoder (Array.Array Wrap)
+decWrapArray =
+  Json.Decode.array decWrap
+
+wraps2json : Array.Array Wrap -> String
+wraps2json wraps_a =
+  Json.Encode.encode 2 <| encWrapArray wraps_a
+
+json2wraps : String -> Result String (Array.Array Wrap)
+json2wraps json_s =
+  Json.Decode.decodeString decWrapArray json_s
+
+
+{---------------------------------------------------------
+---------------------------------------------------------}
+
 
 main : Html a
 main =
