@@ -18,7 +18,7 @@ import Json.Encode
 import Json.Decode       exposing ((:=))
 import Json.Decode.Extra exposing ((|:))
 
-import Widget
+--import Widget
 import Widget.Data.Type exposing (..)
 import Widget.Data.Json  -- exposing (..)
 

@@ -25,17 +25,6 @@ import (
 )
 
 type (
-	//Json.Decode.succeed JobTypes
-	//    |: ("job_types" := ( Json.Decode.list decodeJobType ) )
-	//{----------------------------------------------}
-
-	//decodeJobType : Json.Decode.Decoder JobType
-	//decodeJobType =
-	//Json.Decode.succeed JobType
-	//    |: ("jobs" := Json.Decode.list decodeJob)
-	//    |: ("id"   := Json.Decode.string)
-	//    |: ("name" := Json.Decode.string)
-
 	JobTypes struct {
 		JobTypes []JobType `json:"job_types,omitempty"`
 	}
@@ -49,29 +38,28 @@ type (
 		Jobs []Job `json:"jobs"` // `json:"jobs,omitempty"`
 	}
 
-	//encodeRSyncJob : RSyncJob -> Json.Encode.Value
-	//encodeRSyncJob rsjob =
-	// Json.Encode.object [
-	//    ( "job", JobType.encodeJob rsjob.job )
-	//  , ( "root", Widget.Data.encodeNode rsjob.node )
-	//  ]
-
-	//	RSyncJob struct {
-	//		Job  Job
-	//		Root Node //--`json:"name"`
-	//	}
-
 	Job struct {
 		Name     string `json:"name,omitempty"`
 		TypeName string `json:"type_name,omitempty"`
 		//		Id   string
 		JsonSha1 string `json:"json_id,omitempty"`
 		YamlSha1 string `json:"yaml_id,omitempty"`
+
 		//		Root     Node   `json:",omitempty"` //--`json:"name"`
-		Root Node `json:"root"` //--`json:"name"`
+
+		//--Root Node `json:"root"` //--`json:"name"`
+		Nodes []Wrap `json:"root"` //--`json:"name"`
 	}
 
-	Node struct {
+	//type alias Record =
+	//  { id       : Id
+	//  , label    : String
+	//  , descr    : String
+	//  , value    : Value
+	//  , fmtr     : Formatter
+	//  }
+
+	Record struct {
 		//		Id string `json:",omitempty"`
 		Id string `json:"id"`
 		//		Type        string `json:",omitempty"`
@@ -82,13 +70,85 @@ type (
 		//		Value       map[string]interface{} `json:",omitempty"`
 		Value map[string]interface{} `json:"value"`
 		//		CmdLet      string                 `json:",omitempty"`
-		CmdLet string `json:"cmdlet"`
-		//		Kids        []*Node                `json:",omitempty"`
-		Kids []*Node `json:"kids"`
-		//		IsActive *bool `json:"active"`
+		//		CmdLet string `json:"cmdlet"`
+		//		//		Kids        []*Node                `json:",omitempty"`
+		//		Kids []*Node `json:"kids"`
+		//		//		IsActive *bool `json:"active"`
+		Fmtr map[string]interface{} `json:"fmtr"`
 	}
 
-	nodesById_M map[string]*Node
+	//type alias Wrap =
+	//  { rec     : Record
+	//  , id      : Int
+	//  , parent  : Int
+	//  }
+	Wrap struct {
+		Rec    Record `json:"rec"`
+		Id     int    `json:"id"`
+		Parent int    `json:"par-id"`
+	}
+
+	//type alias Node =
+	//  { rec  : Record
+	//  , kids : Tree
+	//  }
+
+	//type Tree = Kids (List Node)
+
+	//type Value
+	//  = BoolValue Bool
+	//  | StringValue String
+	//  | RootCmd
+	//  | Group Orientation
+	//  | Switch Id
+
+	//type Orientation
+	//  = Vertical
+	//  | Horizontal
+	//  | Disoriented
+
+	//type Formatter
+	//  = BoolFmtr String String
+	//  | StringFmtr String
+	//  | KidsListFmtr String String
+	//--  | KidsByIdFmtr String String
+	//  | SelectedKidFmtr
+
+	//	Node struct {
+	//		//		Id string `json:",omitempty"`
+	//		Id string `json:"id"`
+	//		//		Type        string `json:",omitempty"`
+	//		//		Label       string                 `json:",omitempty"`
+	//		Label string `json:"label"`
+	//		//		Description string                 `json:",omitempty"`
+	//		Description string `json:"descr"`
+	//		//		Value       map[string]interface{} `json:",omitempty"`
+	//		Value map[string]interface{} `json:"value"`
+	//		//		CmdLet      string                 `json:",omitempty"`
+	//		CmdLet string `json:"cmdlet"`
+	//		//		Kids        []*Node                `json:",omitempty"`
+	//		Kids []*Node `json:"kids"`
+	//		//		IsActive *bool `json:"active"`
+	//	}
+
+	//	Node struct {
+	//		//		Id string `json:",omitempty"`
+	//		Id string `json:"id"`
+	//		//		Type        string `json:",omitempty"`
+	//		//		Label       string                 `json:",omitempty"`
+	//		Label string `json:"label"`
+	//		//		Description string                 `json:",omitempty"`
+	//		Description string `json:"descr"`
+	//		//		Value       map[string]interface{} `json:",omitempty"`
+	//		Value map[string]interface{} `json:"value"`
+	//		//		CmdLet      string                 `json:",omitempty"`
+	//		CmdLet string `json:"cmdlet"`
+	//		//		Kids        []*Node                `json:",omitempty"`
+	//		Kids []*Node `json:"kids"`
+	//		//		IsActive *bool `json:"active"`
+	//	}
+
+	//	nodesById_M map[string]*Node
 
 	//	cmdletsById_M map[string]string
 
@@ -117,14 +177,14 @@ func (job *Job) Check() error {
 		msg := fmt.Sprintf("MISSING job Name: %#v", *job)
 		return errors.New(msg)
 	}
-	if strings.TrimSpace(job.Root.Label) == "" {
-		//		return errors.New("MISSING job Root Label")
-		msg := fmt.Sprintf("MISSING job Root Label: %#v", *job)
-		return errors.New(msg)
-	}
-	return job.Root.ProcessTree()
+	//	if strings.TrimSpace(job.Root.Label) == "" {
+	//		//		return errors.New("MISSING job Root Label")
+	//		msg := fmt.Sprintf("MISSING job Root Label: %#v", *job)
+	//		return errors.New(msg)
+	//	}
+	//	return job.Root.ProcessTree()
 
-	//	return nil
+	return nil
 }
 
 //func (rsJob *RSyncJob) Check() error {
@@ -145,37 +205,37 @@ func (job *Job) Check() error {
 //	return rsJob.Root.ProcessTree()
 //}
 
-func (node *Node) ProcessTree() error {
-	nodesById_m := make(nodesById_M)
+//func (node *Node) ProcessTree() error {
+//	nodesById_m := make(nodesById_M)
 
-	cnf := func(n *Node) error {
-		return n.CheckNode(nodesById_m)
-	}
+//	cnf := func(n *Node) error {
+//		return n.CheckNode(nodesById_m)
+//	}
 
-	return node.WalkTree(cnf)
-}
+//	return node.WalkTree(cnf)
+//}
 
-func (node *Node) CheckNode(nodesById_m nodesById_M) error {
-	altNode, ok := nodesById_m[node.Id]
-	if ok {
-		errMsg := fmt.Sprintf("Duplicate ID '%s':  %+v  <->  %+v",
-			node.Id, altNode, node)
-		return errors.New(errMsg)
-	}
-	nodesById_m[node.Id] = node
-	return nil
-}
+//func (node *Node) CheckNode(nodesById_m nodesById_M) error {
+//	altNode, ok := nodesById_m[node.Id]
+//	if ok {
+//		errMsg := fmt.Sprintf("Duplicate ID '%s':  %+v  <->  %+v",
+//			node.Id, altNode, node)
+//		return errors.New(errMsg)
+//	}
+//	nodesById_m[node.Id] = node
+//	return nil
+//}
 
-func (node *Node) WalkTree(cnf func(*Node) error) error {
-	for _, kid := range node.Kids {
-		err := kid.WalkTree(cnf)
-		if err != nil {
-			return err
-		}
-	}
+//func (node *Node) WalkTree(cnf func(*Node) error) error {
+//	for _, kid := range node.Kids {
+//		err := kid.WalkTree(cnf)
+//		if err != nil {
+//			return err
+//		}
+//	}
 
-	return cnf(node)
-}
+//	return cnf(node)
+//}
 
 func ServeGin(port int, baseDir string, htmlFiles_l []string) error {
 	router := gin.Default()
@@ -283,10 +343,13 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 					eh.err = yaml.Unmarshal(cfg_b, &job) //-- &rsJob)
 				})
 				log.Info("parsed job", "jobType", jobTypeName,
-					"jobfile", oldJobFPath,
+					//					"jobfile", oldJobFPath,
 					//					 "job.TypeName", rsJob.Job.TypeName, "name", rsJob.Job.Name)
 					"job.TypeName", job.TypeName,
-					"name", job.Name)
+					"name", job.Name,
+					"nodes", len(job.Nodes),
+					"root", job.Nodes[0],
+				)
 
 				//	JobTypes struct {
 				//		JobTypes []JobType `json:"job_types"`
@@ -317,7 +380,7 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 					//						jobType.Jobs = append(jobType.Jobs, rsJob.Job)
 					if job.TypeName == jobTypeName {
 						// FIXME: remove! this is just here to minimize the data traffic
-						job.Root.Kids = []*Node{}
+						//						job.Root.Kids = []*Node{}
 						//						job.Root = Node{}
 						jobType.Jobs = append(jobType.Jobs, job)
 					}
@@ -460,11 +523,13 @@ cat <<EOYD | less
 #
 EOYD
 `,
-		//		rsJob.Root.Label, rsJob.Job.Name, job2_yb, timeStamp))
-		job.Root.Label, job.Name, job2_yb, timeStamp))
+		//		//		rsJob.Root.Label, rsJob.Job.Name, job2_yb, timeStamp))
+		//		job.Root.Label, job.Name, job2_yb, timeStamp))
+		job.TypeName, job.Name, job2_yb, timeStamp))
 
-	//	cmdFName := strings.TrimSpace(strings.ToLower(rsJob.Root.Label))
-	cmdFName := strings.TrimSpace(strings.ToLower(job.Root.Label))
+	//	//	cmdFName := strings.TrimSpace(strings.ToLower(rsJob.Root.Label))
+	//	cmdFName := strings.TrimSpace(strings.ToLower(job.Root.Label))
+	cmdFName := strings.TrimSpace(strings.ToLower(job.TypeName))
 	cmdDir := filepath.Join(baseDir, cmdFName)
 	os.MkdirAll(cmdDir, 0777)
 

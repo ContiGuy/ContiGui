@@ -5,6 +5,10 @@
 #   - alternatively it can also be built using elm, go, ego
 #
 
+# make clean all && LOGXI=* conti-gui wui
+
+
+
 if which cb > /dev/null; then
 	CB=$(which cb)
 fi

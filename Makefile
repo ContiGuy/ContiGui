@@ -31,4 +31,5 @@ upx2: conti-gui
 clean:
 	${CB} go clean -i # -x  # -r   # -n
 	rm -rf /go/pkg/*
+	rm -rf wui/elm-stuff/build-artifacts
 #	ls -al /go/bin /go/pkg
