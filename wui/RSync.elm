@@ -272,7 +272,7 @@ decodeJobTypes =
 
 initJob : String -> Model -> JobType.Job
 initJob jobName model =
-  JobType.Job "" "" jobName "RSync" model.root
+  JobType.Job "" "" jobName "RSync" "dunno what to do !" model.root
 
 {--------------------------------------
 encodeRSyncJob job =
@@ -298,19 +298,21 @@ saveJob jobName model =
 
 
 type alias SaveJobResult =
-  { jsonId  : String
-  , yamlId  : String
-  , jobName : String
-  , cmd     : String
+  { jsonId   : String
+  , yamlId   : String
+  , typeName : String
+  , jobName  : String
+  , cmd      : String
   }
 
 decodeJobSaved : JD.Decoder SaveJobResult
 decodeJobSaved =
-  JD.object4 SaveJobResult
-    ("json_id"  := JD.string)
-    ("yaml_id"  := JD.string)
-    ("job_name" := JD.string)
-    ("cmd"      := JD.string)
+  JD.object5 SaveJobResult
+    ("json_id"   := JD.string)
+    ("yaml_id"   := JD.string)
+    ("type_name" := JD.string)
+    ("job_name"  := JD.string)
+    ("cmd"       := JD.string)
 
 {--------------------------------------
 --------------------------------------}

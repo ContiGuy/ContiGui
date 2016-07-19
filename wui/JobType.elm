@@ -18,9 +18,9 @@ import Json.Encode
 import Json.Decode       exposing ((:=))
 import Json.Decode.Extra exposing ((|:))
 
---import Widget
 import Widget.Data.Type exposing (..)
-import Widget.Data.Json  -- exposing (..)
+import Widget.Data.Json
+import Widget.Gen
 
 -- MODEL
 
@@ -42,19 +42,12 @@ type alias Job =
     , yamlId   : String
     , name     : String
     , typeName : String
+    , cmd      : String
     , root     : Widget.Data.Type.Node
     }
 
 
 {----------------------------------------------
-init : String -> JobType
-init jobTypeName =
-  JobType [
-    Job "0-json" "0-yaml" "--"      jobTypeName
-  , Job "1-json" "1-yaml" "default" jobTypeName
-  , Job "2-json" "2-yaml" "hra"     jobTypeName
-  , Job "3-json" "3-yaml" "kati"    jobTypeName
-  ] "jt5" jobTypeName
 ----------------------------------------------}
 
 
@@ -66,22 +59,10 @@ decodeJobTypes =
 {----------------------------------------------}
 
 
---  Json.Decode.oneOf [
---    Json.Decode.object1 BoolValue ( "bool" := Json.Decode.bool )
---  , Json.Decode.object1 StringValue ( "string" := Json.Decode.string )
-
 decodeJobType : Json.Decode.Decoder JobType
 decodeJobType =
     Json.Decode.succeed JobType
---        |: ("jobs" := Json.Decode.oneOf [
---                        decodeMaybeJobList ( Json.Decode.maybe ( Json.Decode.list decodeJob ) )
---                      , Json.Decode.null []
---                      ] )
-
---        |: ("jobs" := decodeMaybeJobList ( Json.Decode.maybe ( Json.Decode.list decodeJob ) ) )
---        |: ( Json.Decode.maybe ("jobs" := Json.Decode.list decodeJob) )
         |: ("jobs" := Json.Decode.list decodeJob)
-
         |: ("id"   := Json.Decode.string)
         |: ("name" := Json.Decode.string)
 {----------------------------------------------}
@@ -120,8 +101,9 @@ decodeJob =
     Json.Decode.succeed Job
         |: ("json_id"   := Json.Decode.string)
         |: ("yaml_id"   := Json.Decode.string)
-        |: ("name"      := Json.Decode.string)
+        |: ("job_name"  := Json.Decode.string)
         |: ("type_name" := Json.Decode.string)
+        |: ("cmd"       := Json.Decode.string)
         |: ("root"      := Widget.Data.Json.decodeNode)
 
 encodeJob : Job -> Json.Encode.Value
@@ -129,8 +111,9 @@ encodeJob job =
     Json.Encode.object
         [ ("json_id",   Json.Encode.string job.jsonId)
         , ("yaml_id",   Json.Encode.string job.yamlId)
-        , ("name",      Json.Encode.string job.name)
+        , ("job_name",  Json.Encode.string job.name)
         , ("type_name", Json.Encode.string job.typeName)
+        , ("cmd",       Json.Encode.string <| Widget.Gen.cmdOf job.root)
         , ("root",      Widget.Data.Json.encodeNode job.root)
         ]
 

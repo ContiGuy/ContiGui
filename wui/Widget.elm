@@ -29,6 +29,10 @@ module Widget exposing (..)
   )
 -------------------------------------------------------}
 
+import Widget.Data.Type exposing (..)
+import Widget.Gen       exposing (..)
+
+
 
 import Html exposing (..)
 import Html.Events exposing (..)
@@ -37,97 +41,12 @@ import Html.Attributes exposing (..)
 --import Json.Encode
 --import Json.Decode       exposing ((:=))
 --import Json.Decode.Extra exposing ((|:))
-import Regex as RX
-import String exposing (..)
-import Dict
-
-import Widget.Data.Type exposing (..)
+--import Regex as RX
+--import String exposing (..)
+--import Dict
 
 
 -- MODEL
-
-{-----------------------------------
-
---type alias Node = Widget.Data.Node
---type alias Id = Widget.Data.Id
---type alias Kids = Widget.Data.Kids
---type alias Value = Widget.Data.Value
---type alias Formatter = Widget.Data.Formatter
-
-
-fmtList : String -> String -> Formatter
-fmtList cmdFmt listSep =
-  KidsListFmtr cmdFmt listSep
-
-fmtById : String -> String -> Formatter
-fmtById cmdFmt listSep =
-  KidsByIdFmtr cmdFmt listSep
-
---fmtBool : String -> String -> Formatter
---fmtBool cmdTrue cmdFalse =
---  BoolFmtr cmdTrue cmdFalse
------------------------------------}
-
-
-{-----------------------------------
-aRoot : String -> List Node -> Formatter -> Node
-aRoot label kidsList fmtr =
-    Node "root" label "root node of the command" RootCmd fmtr (Widget.Data.KidsList kidsList)
-
-aVertical : String -> String -> List Node -> Formatter -> Node
-aVertical id label kidsList fmtr =
-  Node (id ++ "-VG") label "a vertical grouping" (Group Widget.Data.Vertical) fmtr (Widget.Data.KidsList kidsList)
-
-aHorizontal : String -> String -> List Node -> Formatter -> Node
-aHorizontal id label kidsList fmtr =
-  Node (id ++ "-HG") label "a horizontal grouping" (Group Widget.Data.Horizontal) fmtr (Widget.Data.KidsList kidsList)
-
-aSwitch : String -> String -> List Node -> Node
-aSwitch id label kidsList =
-  let
-    optFirstKid = List.head kidsList
-    fkid =
-      case optFirstKid of
-        Nothing  -> ""
-        Just kid -> kid.id
-  in
-    Node (id ++ "-SW") label "a switch" (Switch fkid) SelectedKidFmtr (KidsList kidsList)
-
-aBool : Id -> String -> String -> String -> Node
-aBool id label descr cmdTrue =
-  Node (id ++ "_B") label descr (BoolValue False) (BoolFmtr cmdTrue "") NoKids
-
-aBoolX : Id -> String -> String -> Bool -> String -> String -> Node
-aBoolX id label descr flag cmdTrue cmdFalse =
-  Node (id ++ "_BX") label descr (BoolValue flag) (BoolFmtr cmdTrue cmdFalse) NoKids
-
-aBooT : Id -> String -> String -> String -> Node
-aBooT id label descr cmdTrue =
-  aBoolX id label descr True cmdTrue ""
-
-aString : Id -> String -> String -> String -> Node
-aString id label descr cmdFmt =
-  let
-    strValue = StringValue (validateFormatForParam cmdFmt)
-  in
-    Node (id ++ "_S") label descr strValue (StringFmtr cmdFmt) NoKids
-
-validateFormatForParam : String -> String
-validateFormatForParam cmdFmt =
-      if contains "{{}}" cmdFmt then
-        ""
-      else
-        "!! format MUST contain '{{}}' !!"
------------------------------------}
-
-{-------------------------------------------------
-
-kidsOf : Node -> List Node
-kidsOf node =
-  case node.kids of
-    KidsList kids_l -> kids_l
-    NoKids          -> []
--------------------------------------------------}
 
 {-------------------------------------------------
 -------------------------------------------------}
@@ -214,7 +133,7 @@ nodeAsHtmlLI node =
 kidsAsUL : Node -> Html Msg
 kidsAsUL node =
       ul [] ( List.map (\ k -> nodeAsHtmlLI k) ( kidsOf node ) )
-----------------------------------------------}
+----------------------------------------------
 
 
 cmdOf : Node -> String
@@ -313,6 +232,7 @@ cmdOf node =
 getSelectedKid : Id -> Node -> Maybe Node
 getSelectedKid sid node =
   List.head ( List.filter (\ kid -> kid.rec.id == sid ) (kidsOf node) )
+----------------------------------------------}
 
 
 {----------------------------------------

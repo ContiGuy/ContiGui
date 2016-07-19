@@ -12,7 +12,6 @@ type alias Record =
   , descr    : String
   , value    : Value
   , fmtr     : Formatter
---  , kids     : Kids
   }
 
 
@@ -27,7 +26,6 @@ type Value
   = BoolValue Bool
   | StringValue String
   | RootCmd
-  -- | Group Bool
   | Group Orientation
   | Switch Id
 
@@ -35,7 +33,7 @@ type Value
 type Orientation
   = Vertical
   | Horizontal
-  | Disoriented        -- Diagonal   -- NO OP
+  | Disoriented
 
 
 type Formatter
@@ -59,17 +57,9 @@ replaceKids node newKids_l =
 
 insertKid : Node -> Node -> Node
 insertKid newKid node =
-  --{ node | kids = Kids ( newKid :: (kidsOf node) ) }
   replaceKids node <| newKid :: (kidsOf node)
 
 
-  {-- id       : Id
-  , label    : String
-  , descr    : String
-  , value    : Value
-  , fmtr     : Formatter
---  , kids     : Kids
-  --}
 notFoundRec : String -> Record
 notFoundRec errMsg =
   ( aBool "id" errMsg errMsg errMsg ).rec
@@ -122,9 +112,6 @@ aBoolX id label descr flag cmdTrue cmdFalse =
 aBool : Id -> String -> String -> String -> Node
 aBool id label descr cmdTrue =
   aBoolX (id ++ "F") label descr False cmdTrue ""
-  --Node
-    --( Record (id ++ "_B") label descr (BoolValue False) (BoolFmtr cmdTrue "") )
-    --( Kids [] )
 
 aBooT : Id -> String -> String -> String -> Node
 aBooT id label descr cmdTrue =

@@ -18,7 +18,6 @@ encRec record =
         , ("descr", Json.Encode.string record.descr)
         , ("value", encodeValue        record.value)
         , ("fmtr",  encodeFormatter    record.fmtr)
-        --, ("kids", encodeKids record.kids)
         ]
 
 decRec : Json.Decode.Decoder Record
@@ -150,18 +149,17 @@ decodeStringToOrientation s =
 encWrap : Wrap -> Json.Encode.Value
 encWrap wrap =
   Json.Encode.object [
-    ( "rec",     encRec wrap.rec )
-  , ( "id",      Json.Encode.int wrap.id )
-  , ( "par-id",  Json.Encode.int wrap.parent )
+    ( "rec",        encRec          wrap.rec )
+  , ( "id",         Json.Encode.int wrap.id )
+  , ( "parent_id",  Json.Encode.int wrap.parent )
   ]
 
 decWrap : Json.Decode.Decoder Wrap
 decWrap =
   Json.Decode.object3 Wrap
-    ( "rec" := decRec )
-    ( "id" := Json.Decode.int )
-    ( "par-id" := Json.Decode.int )
-    --( "par-n" := Json.Decode.string )
+    ( "rec"        := decRec )
+    ( "id"         := Json.Decode.int )
+    ( "parent_id"  := Json.Decode.int )
 
 encWrapArray : Array.Array Wrap -> Json.Encode.Value
 encWrapArray wraps_l =

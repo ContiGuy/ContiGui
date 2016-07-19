@@ -43,10 +43,11 @@ type (
 	}
 
 	Job struct {
-		Name     string `json:"name,omitempty"`
 		TypeName string `json:"type_name,omitempty"`
+		Name     string `json:"job_name,omitempty"`
 		JsonSha1 string `json:"json_id,omitempty"`
 		YamlSha1 string `json:"yaml_id,omitempty"`
+		Cmd      string `json:"cmd,omitempty"`
 		Nodes    []Wrap `json:"root"` //--`json:"name"`
 	}
 
@@ -79,7 +80,7 @@ type (
 	Wrap struct {
 		Rec    Record `json:"rec"`
 		Id     int    `json:"id"`
-		Parent int    `json:"par-id"`
+		Parent int    `json:"parent_id"`
 	}
 
 	errHandler_T struct {
@@ -135,13 +136,13 @@ func ServeGin(port int, baseDir string, htmlFiles_l []string) error {
 	})
 
 	router.POST("/jobs/:jobType", func(c *gin.Context) {
-		time.Sleep(300 * time.Millisecond)
+		//		time.Sleep(300 * time.Millisecond)
 		eh := errHandler_T{}
 		eh.handleJobPost(baseDir, c)
 	})
 
 	router.GET("/jobs/:jobType", func(c *gin.Context) {
-		time.Sleep(300 * time.Millisecond)
+		//		time.Sleep(300 * time.Millisecond)
 		eh := errHandler_T{}
 		eh.handleJobList(baseDir, c)
 	})
@@ -349,11 +350,12 @@ EOYD
 		haveToSaveJob = bytes.Compare(jobScript_b, oldJob_b) != 0
 	}
 
-	cmdMsg := "# job already known, not saved: " + jobFPath //-job.Root.CmdLet
+	cmdMsg := " # job already known, not saved: " + jobFPath //-job.Root.CmdLet
 	if haveToSaveJob {
 		eh.safe(func() { eh.err = ioutil.WriteFile(jobFPath, jobScript_b, 0777) })
-		cmdMsg = "# job saved as: " + jobFPath
+		cmdMsg = " # job saved as: " + jobFPath
 	}
+	job.Cmd += cmdMsg
 
 	eh.safe(func() {
 		eh.forAllJobs(
@@ -368,13 +370,14 @@ EOYD
 	})
 
 	eh.safe(func() {
-		res := gin.H{
-			"job_name": job.Name,
-			"json_id":  job.JsonSha1,
-			"yaml_id":  job.YamlSha1,
-			"cmd":      cmdMsg,
-		}
-		c.JSON(http.StatusCreated, res)
+		//		res := gin.H{
+		//			"job_name": job.Name,
+		//			"json_id":  job.JsonSha1,
+		//			"yaml_id":  job.YamlSha1,
+		//			"cmd":      cmdMsg,
+		//		}
+		//		c.JSON(http.StatusCreated, res)
+		c.JSON(http.StatusCreated, job)
 	})
 
 	eh.ifErr(func() { c.AbortWithError(http.StatusBadRequest, eh.err) })
