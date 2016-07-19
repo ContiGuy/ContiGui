@@ -16,6 +16,7 @@ module RSync exposing (Model, Msg, init, update, viewHead, viewBody)
 
 import Widget as W
 import Widget.Data.Type exposing (..)
+import Widget.Gen
 
 import RSyncConfig exposing (..)
 
@@ -30,6 +31,7 @@ import Html.Attributes   exposing (..)
 import Http              exposing (..)
 import Task
 --import String
+import Dict
 import Json.Decode as JD exposing ((:=))
 import Json.Encode
 
@@ -47,8 +49,7 @@ main =
 -- MODEL
 
 type alias Model =
-  { currJobName  : String
-  , combo        : ComboBox.Model
+  { combo        : ComboBox.Model
   , lastErr      : Maybe Http.Error
   , lastOk       : Maybe String
 
@@ -56,9 +57,8 @@ type alias Model =
   , debug        : Util.Debug.Model
 
   -- widgets
-  --, root         : Node
-  --, rsynJobType  : JobType.JobType
-  , jobs         : List JobType.Job
+  , currJobName  : String
+  , rsyncRoots   : Dict.Dict String Node
   }
 
 
@@ -79,21 +79,11 @@ type alias Model =
 init : (Model, Cmd Msg)
 init =
   let
-  {-------------------------------------
-    root = aRoot "RSync" [
-      RSyncConfig.init
-    ] (fmtList "rsync {{}} # ..." " ")
-    --rsyncJobType =
-      --JobType.JobType [] "rsync" "RSync"
-  ----------------------------------------------}
     model =
-      Model "" ComboBox.init Nothing (Just "started") "" Util.Debug.init
-        --initialRootNode
-         []
+      Model ComboBox.init Nothing (Just "started") "" Util.Debug.init
+         "" Dict.empty
   in
     model ! []
-    --( Model "" ComboBox.init Nothing (Just "started") "" Util.Debug.init root
-    --, Cmd.none )
 
 initialRootNode : Node
 initialRootNode =
@@ -103,9 +93,12 @@ initialRootNode =
 
 getRootNode : Model -> Node
 getRootNode model =
-  case List.head <| List.filter (\ j -> j.name == model.currJobName) model.jobs of
-    Nothing -> initialRootNode
-    Just job -> job.root
+  case Dict.get model.currJobName model.rsyncRoots of
+--  case List.head
+--       <| List.filter (\ j -> j.name == model.currJobName) model.jobs
+--  of
+    Nothing   -> initialRootNode
+    Just root -> root
 
 {-----------------------------------
 -----------------------------------}
@@ -142,15 +135,16 @@ update msg model =
     case msg of
       CallWidget wMsg ->
         let
-          ( newRootNode, cmd ) = W.update wMsg   -- model.root
+          ( newRootNode, cmd ) = W.update wMsg
                                 <| getRootNode model
-          newJobs =
-            --List.map (\j -> if j.name == model.currJobName then { j | root = newRoot } else j) model.jobs
-            List.map (replaceRootNode model newRootNode) model.jobs
+          newRoots =
+            --List.map (replaceRootNode model newRootNode) model.jobs
+            Dict.insert model.currJobName newRootNode model.rsyncRoots
         in
           { model
-          --| root = newRoot
-          | jobs = newJobs
+          --| jobs = newJobs
+          | rsyncRoots = newRoots
+          , output = Widget.Gen.cmdOf newRootNode
           , lastOk = Nothing
           } ! [ Cmd.map CallWidget cmd ]
 
@@ -177,22 +171,10 @@ update msg model =
           ( nCombo, nCbMsg ) = ComboBox.update (ComboBox.Select msgStr) model.combo
           
           {-----------------------------------------------------------------------
-          switchJob jname job =
-            if jname == job.name then
-              
-          
-          newJobs =
-            List.map (\ j -> ) model.jobs
-          
-          newRoot =
-            case List.head <| List.filter (\j -> j.name == str) model.jobs of
-              Nothing  -> model.root
-              Just job -> job.root
           -----------------------------------------------------------------------}
         in
           { model
           | combo  = nCombo
-          --, root   = newRoot
           , currJobName = msgStr
           , lastOk = Nothing
           } ! [ Cmd.map ComboMsg nCbMsg ]
@@ -260,11 +242,6 @@ update msg model =
           jobNames =
             List.map .name rsyncJobs
             {-----------------------------------
-            case optJobType of
-              Just rsyncJT ->
-                List.map .name rsyncJT.jobs
-              Nothing ->
-                []
             -----------------------------------}
           
           newOpts =
@@ -275,7 +252,8 @@ update msg model =
           { model
           | combo = nCombo
           , output = toString loadedJobs
-          , jobs = rsyncJobs
+          --, jobs = rsyncJobs
+          , rsyncRoots = Dict.fromList <| List.map (\ j -> (j.name, j.root) ) rsyncJobs
           , lastErr = Nothing
           , lastOk = Just "jobs loaded"
           } ! [ Cmd.map ComboMsg nCbMsg ]
@@ -306,7 +284,7 @@ decodeJobTypes =
 
 initJob : String -> Model -> JobType.Job
 initJob jobName model =
-  JobType.Job "" "" jobName "RSync" "dunno what to do !" -- model.root
+  JobType.Job "" "" jobName "RSync" "dunno what to do !"
     <| getRootNode model
 
 {--------------------------------------
@@ -367,7 +345,6 @@ view model =
 viewBody : Model -> Html.Html Msg
 viewBody model =
   let
-    -- (n, v) = W.viewRoot model.root
     (n, v) = W.viewRoot <| getRootNode model
   in
     Html.div [] [
