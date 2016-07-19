@@ -19,7 +19,8 @@ import Json.Decode       exposing ((:=))
 import Json.Decode.Extra exposing ((|:))
 
 import Widget
-import Widget.Data
+import Widget.Data.Type exposing (..)
+import Widget.Data.Json  -- exposing (..)
 
 -- MODEL
 
@@ -41,7 +42,7 @@ type alias Job =
     , yamlId   : String
     , name     : String
     , typeName : String
-    , root     : Widget.Node
+    , root     : Widget.Data.Type.Node
     }
 
 
@@ -121,7 +122,7 @@ decodeJob =
         |: ("yaml_id"   := Json.Decode.string)
         |: ("name"      := Json.Decode.string)
         |: ("type_name" := Json.Decode.string)
-        |: ("root"      := Widget.Data.decodeNode)
+        |: ("root"      := Widget.Data.Json.decodeNode)
 
 encodeJob : Job -> Json.Encode.Value
 encodeJob job =
@@ -130,7 +131,7 @@ encodeJob job =
         , ("yaml_id",   Json.Encode.string job.yamlId)
         , ("name",      Json.Encode.string job.name)
         , ("type_name", Json.Encode.string job.typeName)
-        , ("root",      Widget.Data.encodeNode job.root)
+        , ("root",      Widget.Data.Json.encodeNode job.root)
         ]
 
 {----------------------------------------------

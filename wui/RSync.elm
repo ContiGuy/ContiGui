@@ -15,7 +15,7 @@
 module RSync exposing (Model, Msg, init, update, viewHead, viewBody)
 
 import Widget as W
--- import Widget.Data
+import Widget.Data.Type exposing (..)
 
 import RSyncConfig exposing (..)
 
@@ -57,7 +57,7 @@ type alias Model =
   , debug        : Util.Debug.Model
 
   -- widgets
-  , root      : W.Node
+  , root         : Node
   }
 
 
@@ -78,9 +78,10 @@ type alias Model =
 init : (Model, Cmd Msg)
 init =
   let
-    ( root, nodes ) = W.aRoot "RSync" [
+    --( root, nodes ) = aRoot "RSync" [
+    root = aRoot "RSync" [
       RSyncConfig.init
-    ] (W.fmtList "rsync {{}} # ..." " ")
+    ] (fmtList "rsync {{}} # ..." " ")
   in
     ( Model "" ComboBox.init Nothing (Just "started") "" Util.Debug.init root
     , Cmd.none )
@@ -88,7 +89,7 @@ init =
 {-----------------------------------
 type alias RSyncJob =
   { job  : JobType.Job
-  , node : W.Node
+  , node : Node
   }
 
 initJob : String -> Model -> RSyncJob

@@ -23,11 +23,15 @@ module RSyncConfig exposing (..)
 --import Json.Decode as JD exposing ((:=))
 --import Json.Encode as JE
 
+import Widget.Data.Type exposing (..)
+
+{--------------------------------------
 import Widget as W exposing (
     aRoot, aVertical, aHorizontal, aSwitch, aBool, aBoolX, aBooT, aString
   --, gKidsFmt
   , fmtList   --, fmtById
   )
+--------------------------------------}
 
 --   Local:  rsync [OPTION...] SRC... [DEST]
 --
@@ -43,8 +47,8 @@ import Widget as W exposing (
 --
 --   Usages with just one SRC arg and no DEST arg will list the source files instead of copying.
 
---init : (W.Node, Cmd W.Msg)
-init : W.Node
+--init : (Node, Cmd W.Msg)
+init : Node
 init =
   let
     srcLocationSwitch = locationSwitch "src" "Source"
@@ -56,7 +60,8 @@ init =
       , tgtLocationSwitch
       ] (fmtList "{{}}" " ")
 
-    ( root, nodes ) = aRoot "RSync" [
+    --( root, nodes ) = aRoot "RSync" [
+    root = aRoot "RSync" [
       locationSwitches
     ] (fmtList "rsync {{}} # ..." " ")
 
@@ -260,23 +265,23 @@ init =
 
 
 
-folder : W.Id -> String -> String -> W.Node
+folder : Id -> String -> String -> Node
 folder id descr prefix =
   aString (id ++ "-F") "Folder" descr (prefix ++ "{{}}")
 
-host : String -> String -> W.Node
+host : String -> String -> Node
 host id descr =
   aString (id ++ "-H") "Host" descr "{{}}"
 
-user : String -> String -> W.Node
+user : String -> String -> Node
 user id descr =
   aString (id ++ "-U") "User" descr "{{}}@"
 
-nwport : String -> String -> W.Node
+nwport : String -> String -> Node
 nwport id descr =
   aString (id ++ "-P") "Port" descr ":{{}}"
 
-localFolder : String -> W.Node
+localFolder : String -> Node
 localFolder id =
   let
     lfId = id ++ "-L"
@@ -286,7 +291,7 @@ localFolder id =
       folder lfId "a directory in the local file system" ""
     ] (fmtList "'{{}}'" "")
 
-remoteShell : String -> W.Node
+remoteShell : String -> Node
 remoteShell id =
   let
     rsid = id ++ "-RS"
@@ -297,7 +302,7 @@ remoteShell id =
     , folder  rsid "a directory on the remote host" ":"
     ] (fmtList "'{{}}'" "")
 
-remoteDaemon : String -> W.Node
+remoteDaemon : String -> Node
 remoteDaemon id =
   let
     did = id ++ "-RD"
@@ -309,7 +314,7 @@ remoteDaemon id =
     , folder  did "a directory on the remote host" "::"
     ] (fmtList "'{{}}'" "")
 
-locationSwitch : String -> String -> W.Node
+locationSwitch : String -> String -> Node
 locationSwitch id name =
   aSwitch id name [
     localFolder  id

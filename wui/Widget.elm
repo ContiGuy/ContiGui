@@ -12,7 +12,8 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-module Widget exposing (
+module Widget exposing (..)
+{-------------------------------------------------------
     Node, Msg, Id
   , aRoot, aVertical, aHorizontal, aSwitch, aBool, aBoolX, aBooT, aString
   --, Formatter
@@ -26,76 +27,32 @@ module Widget exposing (
 
   , nodeAsHtmlLI, cmdOf, kidsOf
   )
+-------------------------------------------------------}
 
 
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 --import Html.App
-import Json.Encode
+--import Json.Encode
 --import Json.Decode       exposing ((:=))
 --import Json.Decode.Extra exposing ((|:))
 import Regex as RX
 import String exposing (..)
 import Dict
 
-import Widget.Data exposing (..)
+import Widget.Data.Type exposing (..)
 
 
 -- MODEL
 
 {-----------------------------------
-type alias Node =
-  { id       : Id
-  , label    : String
-  , descr    : String
-  , value    : Value
-  , kids     : Kids
-  , fmtr     : Formatter
-  }
 
-type alias Id = String
-
-type Kids
-  = KidsList ( List Node )
-
-type Value
-  = BoolValue Bool
-  | StringValue String
-  | RootCmd
-  --| Group Bool Bool
-  | Group Bool
-    -- Group isVertical showLabel -- default True False
-    -- a horizontal or vertical group, the flag says if it's vertical: default is vertical
-  --| VerGroup
-  --| HorGroup
-  | Switch Id
-  --| Tabs Id
-
-type Formatter
-  = BoolFmtr String String
-    -- BoolFmtr cTrue cFalse
-    -- cmdlet = if isTrue then cTrue else cFalse
-  | StringFmtr String
-    -- StringFmtr sFmt
-    -- cmdlet = sprintf sFmt ( cmdOf kid )
-  | KidsListFmtr String String
-    -- KidsListFmtr sFmt sSep
-    -- cmdlet = sprintf sFmt ( join ( ListOf ( cmdOf kid ) ) sSep )
-    -- order of kids is unchanged / unchangable
-  | KidsByIdFmtr String String
-    -- KidsByIdFmtr sFmt sSep
-    -- cmdlet = sprintf sFmt ( join ( ListOf ( cmdOf kid ) SortedById ) sSep )
-    -- order of kids is sorted by their Ids
-  | SelectedKidFmtr  -- Id
-  --| EmptyFmtr
------------------------------------}
-
-type alias Node = Widget.Data.Node
-type alias Id = Widget.Data.Id
+--type alias Node = Widget.Data.Node
+--type alias Id = Widget.Data.Id
 --type alias Kids = Widget.Data.Kids
-type alias Value = Widget.Data.Value
-type alias Formatter = Widget.Data.Formatter
+--type alias Value = Widget.Data.Value
+--type alias Formatter = Widget.Data.Formatter
 
 
 fmtList : String -> String -> Formatter
@@ -109,40 +66,20 @@ fmtById cmdFmt listSep =
 --fmtBool : String -> String -> Formatter
 --fmtBool cmdTrue cmdFalse =
 --  BoolFmtr cmdTrue cmdFalse
+-----------------------------------}
 
 
+{-----------------------------------
 aRoot : String -> List Node -> Formatter -> Node
 aRoot label kidsList fmtr =
-  {------------------------------------------
-  let
-    rootNode = Node "root" label "root node of the command" RootCmd (Widget.Data.Kids kidsList) fmtr
-    --grandKids = flatKidsList rootNode
-  in
-    --( rootNode, rootNode :: grandKids )
-    --rootNode
-  ------------------------------------------}
     Node "root" label "root node of the command" RootCmd fmtr (Widget.Data.KidsList kidsList)
-
-{-------------------------------------------------------------------
-aRoot : String -> List Node -> Formatter -> ( Node, List Node )
-aRoot label kidsList fmtr =
-  let
-    rootNode = Node "root" label "root node of the command" RootCmd (KidsList kidsList) fmtr
-    grandKids = flatKidsList rootNode
-  in
-    ( rootNode, rootNode :: grandKids )
--------------------------------------------------------------------}
 
 aVertical : String -> String -> List Node -> Formatter -> Node
 aVertical id label kidsList fmtr =
-  --Node (id ++ "-VG") label "a vertical grouping" (Group Widget.Data.Vertical) (KidsList kidsList) fmtr
-  --Node (id ++ "-VG") label "a vertical grouping" (Group Widget.Data.Vertical) (Widget.Data.Kids kidsList) fmtr
   Node (id ++ "-VG") label "a vertical grouping" (Group Widget.Data.Vertical) fmtr (Widget.Data.KidsList kidsList)
 
 aHorizontal : String -> String -> List Node -> Formatter -> Node
 aHorizontal id label kidsList fmtr =
-  --Node (id ++ "-HG") label "a horizontal grouping" (Group Widget.Data.Horizontal) (KidsList kidsList) fmtr
-  --Node (id ++ "-HG") label "a horizontal grouping" (Group Widget.Data.Horizontal) (Widget.Data.Kids kidsList) fmtr
   Node (id ++ "-HG") label "a horizontal grouping" (Group Widget.Data.Horizontal) fmtr (Widget.Data.KidsList kidsList)
 
 aSwitch : String -> String -> List Node -> Node
@@ -154,19 +91,14 @@ aSwitch id label kidsList =
         Nothing  -> ""
         Just kid -> kid.id
   in
-    --Node (id ++ "-SW") label "a switch" (Switch fkid) (Widget.Data.Kids kidsList) SelectedKidFmtr
     Node (id ++ "-SW") label "a switch" (Switch fkid) SelectedKidFmtr (KidsList kidsList)
 
 aBool : Id -> String -> String -> String -> Node
 aBool id label descr cmdTrue =
-  --Node (id ++ "_B") label descr (BoolValue False) (KidsList []) (BoolFmtr cmdTrue "")
-  --Node (id ++ "_B") label descr (BoolValue False) Widget.Data.Leaf (BoolFmtr cmdTrue "")
   Node (id ++ "_B") label descr (BoolValue False) (BoolFmtr cmdTrue "") NoKids
 
 aBoolX : Id -> String -> String -> Bool -> String -> String -> Node
 aBoolX id label descr flag cmdTrue cmdFalse =
-  --Node (id ++ "_BX") label descr (BoolValue flag) (KidsList []) (BoolFmtr cmdTrue cmdFalse)
-  --Node (id ++ "_BX") label descr (BoolValue flag) Widget.Data.Leaf (BoolFmtr cmdTrue cmdFalse)
   Node (id ++ "_BX") label descr (BoolValue flag) (BoolFmtr cmdTrue cmdFalse) NoKids
 
 aBooT : Id -> String -> String -> String -> Node
@@ -178,8 +110,6 @@ aString id label descr cmdFmt =
   let
     strValue = StringValue (validateFormatForParam cmdFmt)
   in
-    --Node (id ++ "_S") label descr strValue (KidsList []) (StringFmtr cmdFmt)
-    --Node (id ++ "_S") label descr strValue Widget.Data.Leaf (StringFmtr cmdFmt)
     Node (id ++ "_S") label descr strValue (StringFmtr cmdFmt) NoKids
 
 validateFormatForParam : String -> String
@@ -188,27 +118,18 @@ validateFormatForParam cmdFmt =
         ""
       else
         "!! format MUST contain '{{}}' !!"
+-----------------------------------}
 
 {-------------------------------------------------
-kidsOf : Node -> List Node
-kidsOf node =
-  case node.tree of
-    Widget.Data.Kids kids_l ->
-      kids_l
-    Leaf ->
-      []
--------------------------------------------------}
 
 kidsOf : Node -> List Node
 kidsOf node =
   case node.kids of
     KidsList kids_l -> kids_l
     NoKids          -> []
+-------------------------------------------------}
 
 {-------------------------------------------------
-flatKidsList : Node -> List Node
-flatKidsList node =
-  List.foldl List.append [] (List.map flatKidsList (kidsOf node))
 -------------------------------------------------}
 
 
@@ -278,22 +199,9 @@ jobAsJson indent cfgName node =
 
 
 {----------------------------------------------
-decodeNode : Json.Decode.Decoder Node
-decodeNode =
-    Json.Decode.succeed Node
-        |: ("id"   := Json.Decode.string)
-        |: ("label" := Json.Decode.string)
-        |: ("description" := Json.Decode.string)
-        |: ("type" := Json.Decode.string)
-        --|: ("value" := Json.Decode.string)
-        --|: ("name" := Json.Decode.string)
-        --|: ("name" := Json.Decode.string)
-        --|: ("name" := Json.Decode.string)
-----------------------------------------------}
 
 nodeToJson : Int -> Node -> String
 nodeToJson indent node =
-  --Json.Encode.encode indent (encodeNode { node | kids = KidsList [] } )
   Json.Encode.encode indent (encodeNode node)
 
 
@@ -306,6 +214,7 @@ nodeAsHtmlLI node =
 kidsAsUL : Node -> Html Msg
 kidsAsUL node =
       ul [] ( List.map (\ k -> nodeAsHtmlLI k) ( kidsOf node ) )
+----------------------------------------------}
 
 
 cmdOf : Node -> String
@@ -321,8 +230,7 @@ cmdOf node =
 
     insertNodeValue : String -> Node -> String
     insertNodeValue str kid =
-      -- RX.replace RX.All (RX.regex ("{{" ++ kid.id ++ "}}")) (\_ -> (cmdOf kid)) str
-      sprintf str  ( "{{" ++ kid.id ++ "}}" )  ( cmdOf kid )
+      sprintf str  ( "{{" ++ kid.rec.id ++ "}}" )  ( cmdOf kid )
 
     cmdListOfKids : Node -> List String
     cmdListOfKids node =
@@ -334,7 +242,7 @@ cmdOf node =
 
     kidsCmdletsByIdList : Node -> List (Id, String)
     kidsCmdletsByIdList node =
-      List.map (\ k -> (k.id, cmdOf k)) (kidsOf node)
+      List.map (\ k -> (k.rec.id, cmdOf k)) (kidsOf node)
 
     kidsCmdletsByIdDict : Node -> Dict.Dict Id String
     kidsCmdletsByIdDict node =
@@ -352,18 +260,18 @@ cmdOf node =
           ""
 
     resultCmdlet =
-      case node.fmtr of
+      case node.rec.fmtr of
         BoolFmtr cmdTrue cmdFalse ->
-          case node.value of
+          case node.rec.value of
             BoolValue b ->
               if b then cmdTrue
               else cmdFalse
             _ ->
-              "!!! NEITHER TRUE NOR FALSE : " ++ (toString node.value)
-              --Debug.crash ("!!! NEITHER TRUE NOR FALSE : " ++ (toString node.value))
+              "!!! NEITHER TRUE NOR FALSE : " ++ (toString node.rec.value)
+              --Debug.crash ("!!! NEITHER TRUE NOR FALSE : " ++ (toString node.rec.value))
 
         StringFmtr cmdFmt ->
-          case node.value of
+          case node.rec.value of
             StringValue strValue ->
               if strValue == "" then
                 --strValue
@@ -371,23 +279,25 @@ cmdOf node =
               else
                 sprintf1 cmdFmt strValue
             _ ->
-              "!!! NOT A STRING : " ++ (toString node.value)
-              --Debug.crash ("!!! NOT A STRING : " ++ (toString node.value))
+              "!!! NOT A STRING : " ++ (toString node.rec.value)
+              --Debug.crash ("!!! NOT A STRING : " ++ (toString node.rec.value))
 
         KidsListFmtr sFmt listSep ->
           sprintf1 sFmt ( cmdsOfKids listSep node )
 
+{------------------------------------------------------------------------
         KidsByIdFmtr sFmt listSep ->
           -- cmdlet = sprintf sFmt ( join ( ListOf ( cmdOf kid ) SortedById ) sSep )
           -- order of kids is sorted by their Ids
           sprintf1 sFmt ( join listSep ( kidsCmdletsListByIds node ) )
+------------------------------------------------------------------------}
 
         SelectedKidFmtr ->
-          case (getSelectedKid (selectedId node) node) of
+          case (getSelectedKid (selectedId node.rec) node) of
             Just kid ->
               cmdOf kid
             Nothing ->
-              "!!! NOTHING SELECTED : " ++ (toString node.value)
+              "!!! NOTHING SELECTED : " ++ (toString node.rec.value)
 
 {-------------------------------------------
         EmptyFmtr ->
@@ -402,22 +312,10 @@ cmdOf node =
 
 getSelectedKid : Id -> Node -> Maybe Node
 getSelectedKid sid node =
-  -- optSelectedKid = List.head ( List.filter (\ kid -> kid.id == sid ) kids_l )
-  List.head ( List.filter (\ kid -> kid.id == sid ) (kidsOf node) )
+  List.head ( List.filter (\ kid -> kid.rec.id == sid ) (kidsOf node) )
 
 
 {----------------------------------------
-get : Id -> List Node -> Node
-get id nodes =
-  let
-    optNode = List.head ( List.filter (\ n -> id == n.id) nodes )
-  in
-    case optNode of
-      Nothing ->
-        aBool id "!!NOT FOUND!!" False "!!NOT FOUND - TRUE!!" "!!NOT FOUND - FALSE!!"
-        --aBool id "!!NOT FOUND!!" False (BoolFmtr "!!NOT FOUND - TRUE!!" "!!NOT FOUND - FALSE!!")
-      Just node ->
-        node
 ----------------------------------------}
 
 
@@ -438,9 +336,16 @@ updateSingleNode msg node =
       let
         value = val
       in
-        if id == node.id then
-          ( { node | value = Debug.log ( "update " ++ node.label ) value }
-          , Cmd.none )
+        if id == node.rec.id then
+          let
+            rec0 = node.rec
+          in
+            ( { node
+              | rec = { rec0
+                      | value = Debug.log ( "update " ++ node.rec.label ) value
+                      }
+              }
+            , Cmd.none )
         else
           ( node, Cmd.none )
 
@@ -452,7 +357,8 @@ mapUpdate f node =
     ( newNode, cmd )  = f node
     ( newKids, cmds ) = List.unzip ( List.map (mapUpdate f) (kidsOf node) )
   in
-    ( { newNode | kids = KidsList newKids }
+    --( { newNode | kids = KidsList newKids }
+    ( replaceKids newNode newKids
     --( { newNode | tree = Kids newKids }
     , Cmd.batch ( cmd :: cmds ) )
 -----------------------------------------------------------}
@@ -468,11 +374,11 @@ viewRoot node =
     kidsCont_l = List.map view ( kidsOf node )
     cont = div [] kidsCont_l
   in
-    ( node.label, cont)
+    ( node.rec.label, cont)
 
 view : Node -> Html Msg
 view node =
-  case node.value of
+  case node.rec.value of
     BoolValue _ ->
       -- node2TR node
       node2Table node
@@ -483,43 +389,13 @@ view node =
 
     RootCmd ->
       div [] ( [
-        h2 [] [ a [ href "http://localhost:33333" ] [ text node.label ] ]
+        h2 [] [ a [ href "http://localhost:33333" ] [ text node.rec.label ] ]
       ] ++ ( List.map view ( kidsOf node ) ) )
 
     -- Group isVertical ->
     Group orientation ->
       viewGroup orientation node
       {-------------------------------------------------------------
-          let
-            showLabelXX = True
-          in
-            table [ title (toString node.value) ] (
-              if isVertical then
-      case orientation of
-        Widget.Data.Vertical ->
-                let
-                  -- one row
-                  ---row (lbl, cont) =
-                  row (cont, nd, showLabel) =
-                    ---tr [] [ mkLabel showLabel lbl, td [] [cont] ]
-                    tr [] [ mkLabel showLabel nd, td [] [cont] ]
-                  -- many rows
-                  rows node =
-                    List.map row (kidsListOfTuples node)
-                in
-                    rows node
-
-          --else
-        Widget.Data.Horizontal ->
-            -- horizontal
-            let
-              (labels, conts) = kidsTupleOfLists node
-            in
-              --[ tr [] ( List.map (\ label -> mkLabel showLabel label ) labels )
-              [ tr [] ( labels )
-              , tr [] ( List.map (\ cont  -> td [] [cont] )  conts )
-              ]
-        )
       -------------------------------------------------------------}
 
 
@@ -527,18 +403,18 @@ view node =
       {-------------------------------------------}
       let
         kids_l = kidsOf node
-        kidsIdsAndLabels_l = List.map (\ k -> (k.id, k.label) ) kids_l
+        kidsIdsAndLabels_l = List.map (\ k -> (k.rec.id, k.rec.label) ) kids_l
         mkRadioTR (id, lbl) =
           tr [] [
             td [] [ label [] [ text lbl ] ]
-          , td [] [ input [ type' "radio", value id, name node.id
+          , td [] [ input [ type' "radio", value id, name node.rec.id
                     , checked (id == sid)
-                    , onClick (selectSwitch node.id id)
+                    , onClick (selectSwitch node.rec.id id)
                     ] [] ]
           ]
         kidsAsRadioTRs_l = List.map mkRadioTR kidsIdsAndLabels_l
         switchBoard = tr [] [ th [] [
-          text node.label
+          text node.rec.label
         ]] :: kidsAsRadioTRs_l
 
         selectedKidTR =
@@ -546,12 +422,12 @@ view node =
             Nothing ->
               tr [ title "please select one switch option" ] [ td [] [
                 text ("(please select one of the options for "
-                  ++ node.label ++ ")")
+                  ++ node.rec.label ++ ")")
               ] ]
             Just kid ->
               view kid
       in
-        tr [ title (node.label ++ " " ++ node.id) ] [
+        tr [ title (node.rec.label ++ " " ++ node.rec.id) ] [
           td [] [ table [] switchBoard ]
         , td [] [ table [] [ selectedKidTR ] ]
         ]
@@ -562,20 +438,21 @@ viewGroup orientation node =
   let
     showLabelXX = True
     toolTip =
-      title ( node.label ++ " # " ++ (toString node.value) )
+      title ( node.rec.label ++ " # " ++ (toString node.rec.value) )
     tableRows =
       case orientation of
-        Widget.Data.Vertical ->
+        --Widget.Data.
+        Vertical ->
           let
             -- one row
             row (cont, nd, showLabel) =
               tr [] [ mkLabel showLabel nd, td [] [cont] ]
           in
             -- all rows
-            ---------- table [ toolTip ]
               ( List.map row (kidsListOfTuples node) )
 
-        Widget.Data.Horizontal ->
+        --Widget.Data.
+        Horizontal ->
           -- horizontal
           let
             (labels, conts) = kidsTupleOfLists node
@@ -583,38 +460,28 @@ viewGroup orientation node =
             row1 = tr [] ( labels )
             row2 = tr [] ( List.map tdOf conts )
           in
-            -----table [ toolTip ] [ row1, row2 ]
             [ row1, row2 ]
 
-        Widget.Data.Disoriented ->
+        --Widget.Data.
+        Disoriented ->
           [ text "DISORIENTED" ]
   in
     table [ toolTip ] tableRows
 
 
---mkLabel : Bool -> String -> Html Msg
---mkLabel showLabel lblStr =
---  if showLabel && lblStr /= "" then
---    td [] [ text lblStr ]
---  else
---    td [ title lblStr ] []
 
 mkLabel : Bool -> Node -> Html Msg
 mkLabel showLabel node =
---  if showLabel && lblStr /= "" then
   if showLabel then
-    td [ title node.descr ] [ text node.label ]
+    td [ title node.rec.descr ] [ text node.rec.label ]
   else
-    td [ title ( node.label ++ ": " ++ node.descr ) ] []
+    td [ title ( node.rec.label ++ ": " ++ node.rec.descr ) ] []
 
 
---kidsListOfTuples : Node -> List (String, Html Msg)
---kidsListOfTuples : Node -> List (Node, Html Msg)
 kidsListOfTuples : Node -> List (Html Msg, Node, Bool)
 kidsListOfTuples node =
   List.map viewTuple ( kidsOf node )
 
---kidsTupleOfLists : Node -> (List String, List (Html Msg))
 kidsTupleOfLists : Node -> (List (Html Msg), List (Html Msg))
 kidsTupleOfLists node =
   --List.unzip (kidsListOfTuples node)
@@ -630,15 +497,13 @@ kidsTupleOfLists node =
 node2Table : Node -> Html Msg
 node2Table node =
   let
-    --(lbl, cont) = viewTuple node
     (cont, nd, showLabel) = viewTuple node
     nTable node =
-      table [ title (node.label ++ " " ++ node.id) ] [
-        -- tr [] [ mkLabel True lbl, td [] [cont] ]
+      table [ title (node.rec.label ++ " " ++ node.rec.id) ] [
         tr [] [ mkLabel showLabel node, td [] [cont] ]
       ]
   in
-    case node.value of
+    case node.rec.value of
       BoolValue _ ->
         nTable node
       StringValue _ ->
@@ -652,34 +517,27 @@ node2Table node =
 
 
 {-----------------------------------------------}
---viewTuple : Node -> (String, Html Msg)
 viewTuple : Node -> (Html Msg, Node, Bool)
 viewTuple node =
   let
     (content, showLabel) =
-      case node.value of
+      case node.rec.value of
         BoolValue flag ->
-          ( input [ type' "checkbox", checked flag, onCheck (editBool node.id) ] []
-          --, node.label
+          ( input [ type' "checkbox", checked flag, onCheck (editBool node.rec.id) ] []
           , True
           )
         StringValue str ->
-          ( input [ type' "text", value str, onInput (editString node.id) ] []
-          --, node.label
+          ( input [ type' "text", value str, onInput (editString node.rec.id) ] []
           , True
           )
         RootCmd ->
-          -- notImplemented node "viewList RootCmd"
           ( view node
-          --, node.label
           , True
           )
 
         --Group isVertical showLabel ->
         Group isVertical ->
           ( view node
-          --, if showLabel then node.label else ""
-          --, node.label
           , True
           )
 
@@ -692,10 +550,6 @@ viewTuple node =
           , False
           )
   in
-    --( label [] [ text node.label ]
-    --( label   -- node.label
-    --, content
-    --)
     ( content, node, showLabel )
 -----------------------------------------------}
 
@@ -714,114 +568,7 @@ selectSwitch sid kid =
 
 notImplemented : Node -> String -> Html Msg
 notImplemented node errDesr =
-  div [ {-color "red"-} ] [ text ( "ERROR: " ++ errDesr ++ " NOT IMPLEMENTED: " ++ node.label ++ ": " ++ ( toString node.value ) ) ]
-
-
-
-
-
-
-
-
-
-
-
-
-
+  div [ {-color "red"-} ] [ text ( "ERROR: " ++ errDesr ++ " NOT IMPLEMENTED: " ++ node.rec.label ++ ": " ++ ( toString node.rec.value ) ) ]
 
 {----------------------------------------------------------------
-
-decodeNode : Json.Decode.Decoder Node
-decodeNode =
-    Json.Decode.succeed Node
-        |: ("id" := decodeId)
-        |: ("label" := Json.Decode.string)
-        |: ("descr" := Json.Decode.string)
-        |: ("value" := decodeValue)
-        |: ("kids" := decodeKids)
-        |: ("fmtr" := decodeFormatter)
-
-encodeNode : Node -> Json.Encode.Value
-encodeNode record =
-    Json.Encode.object
-        [ ("id", encodeId record.id)
-        , ("label", Json.Encode.string record.label)
-        , ("descr", Json.Encode.string record.descr)
-        , ("value", encodeValue record.value)
-        , ("kids", encodeKids record.kids)
-        , ("fmtr", encodeFormatter record.fmtr)
-        ]
-
-
-decodeId : Json.Decode.Decoder String
-decodeId =
-    Json.Decode.string
-
-encodeId : Id -> Json.Encode.Value
-encodeId id =
-    Json.Encode.string id
-
-
-decodeKids : Json.Decode.Decoder Kids
-decodeKids =
-    let
-        decodeToType string =
-            case string of
-                "KidsList ( List Node )" -> Result.Ok KidsList ( List Node )
-                _ -> Result.Err ("Not valid pattern for decoder to Kids. Pattern: " ++ (toString string))
-    in
-        Json.Decode.customDecoder Json.Decode.string decodeToType
-
-encodeKids : Kids -> Json.Encode.Value
-encodeKids item =
-    case item of
-        KidsList ( List Node ) -> Json.Encode.string "KidsList ( List Node )"
-
-
-decodeValue : Json.Decode.Decoder Value
-decodeValue =
-    let
-        decodeToType string =
-            case string of
-                "BoolValue Bool" -> Result.Ok BoolValue Bool
-                "StringValue String" -> Result.Ok StringValue String
-                "RootCmd" -> Result.Ok RootCmd
-                "Group Bool" -> Result.Ok Group Bool
-                "Switch Id" -> Result.Ok Switch Id
-                _ -> Result.Err ("Not valid pattern for decoder to Value. Pattern: " ++ (toString string))
-    in
-        Json.Decode.customDecoder Json.Decode.string decodeToType
-
-encodeValue : Value -> Json.Encode.Value
-encodeValue item =
-    case item of
-        BoolValue Bool -> Json.Encode.string "BoolValue Bool"
-        StringValue String -> Json.Encode.string "StringValue String"
-        RootCmd -> Json.Encode.string "RootCmd"
-        Group Bool -> Json.Encode.string "Group Bool"
-        Switch Id -> Json.Encode.string "Switch Id"
-
-
-decodeFormatter : Json.Decode.Decoder Formatter
-decodeFormatter =
-    let
-        decodeToType string =
-            case string of
-                "BoolFmtr String String" -> Result.Ok BoolFmtr String String
-                "StringFmtr String" -> Result.Ok StringFmtr String
-                "KidsListFmtr String String" -> Result.Ok KidsListFmtr String String
-                "KidsByIdFmtr String String" -> Result.Ok KidsByIdFmtr String String
-                "SelectedKidFmtr" -> Result.Ok SelectedKidFmtr
-                _ -> Result.Err ("Not valid pattern for decoder to Formatter. Pattern: " ++ (toString string))
-    in
-        Json.Decode.customDecoder Json.Decode.string decodeToType
-
-encodeFormatter : Formatter -> Json.Encode.Value
-encodeFormatter item =
-    case item of
-        BoolFmtr String String -> Json.Encode.string "BoolFmtr String String"
-        StringFmtr String -> Json.Encode.string "StringFmtr String"
-        KidsListFmtr String String -> Json.Encode.string "KidsListFmtr String String"
-        KidsByIdFmtr String String -> Json.Encode.string "KidsByIdFmtr String String"
-        SelectedKidFmtr -> Json.Encode.string "SelectedKidFmtr"
 ------------------------------------------------------------------}
