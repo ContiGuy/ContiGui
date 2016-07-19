@@ -113,23 +113,46 @@ deflatten a =
   let
     --model = Model a -200 <| notFoundNode "NOT STARTED"
     model = DModel Array.empty
-    nModel = Array.foldr deflattenHelper model a
+    modelWithRecords = Array.foldl deflattenRecordsHelper model a
+    modelWithNodes = Array.foldr deflattenNodesHelper modelWithRecords a
   in
     --nModel.tree
     {--------------------------------------------}
-    case Array.get 0 nModel.na of
+    case Array.get 0 modelWithNodes.na of
       Nothing ->
-        notFoundNode "Idx 0 in Array not found"
+        let
+          _ = Debug.log "deflatten: na" <| toString modelWithNodes.na
+        in
+          notFoundNode "Idx 0 in Array not found"
       Just node ->
         node
     --------------------------------------------}
 
-deflattenHelper : Wrap -> DModel -> DModel
-deflattenHelper loopWrap model =
+deflattenRecordsHelper : Wrap -> DModel -> DModel
+deflattenRecordsHelper wrap model =
   let
-    parId = loopWrap.parent
+    msgName =
+      "deflattenRecordsHelper @ " ++ (toString <| Array.length model.na)
+    loggedWrap = Debug.log msgName wrap
+  in
+    { model | na = Array.push (Node loggedWrap.rec (Kids [])) model.na }
+
+deflattenNodesHelper : Wrap -> DModel -> DModel
+deflattenNodesHelper loopWrap model =
+  let
+    -- id = loopWrap.id
+    node =
+      getNodeWithDefault loopWrap.id model.na
+        <| Node loopWrap.rec (Kids [])
+    loggedNode =
+      Debug.log ("deflatten: set new node @ " ++ (toString loopWrap.id)) node
+
+    modelWithNode =
+      { model | na = Array.set loopWrap.id loggedNode model.na }
+
+--    parId = loopWrap.parent
     parNode =
-      getNodeWithDefault parId model.na
+      getNodeWithDefault loopWrap.parent model.na
         <| Node (notFoundRec "Not Yet Unwrapped") (Kids [])
       {----------------------------
       if model.id == parId then
@@ -137,10 +160,6 @@ deflattenHelper loopWrap model =
       else
         Node loopWrap.rec (Kids [])
       ----------------------------}
-    id = loopWrap.id
-    node =
-      getNodeWithDefault id model.na
-        <| Node (notFoundRec "NOT FOUND") (Kids [])
     newParNode =
       insertKid node parNode
 
@@ -153,9 +172,18 @@ deflattenHelper loopWrap model =
     --newParRec = { parRec | kids = Node (wrap.rec :: (kidsOf parRec) ) }
     --newParWrap = { parWrap | rec = newParRec }
     -- nParWrap = 7  -- Debug.log ("deflatten: new par wrap " ++ (toString parId)) newParWrap
+    loggedParNode =
+      Debug.log ("deflatten: set new parent node @ " ++ (toString loopWrap.parent)) newParNode
+    
+    modelWithParent =
+      if loopWrap.parent >= 0 then
+        { modelWithNode | na = Array.set loopWrap.parent loggedParNode model.na }
+      else
+        modelWithNode
   in
     -- { model | a = Array.set parId nParWrap model.a }
-    { model | na = Array.set parId newParNode model.na }
+    -- { modelWithNode | na = Array.set parId nParNode model.na }
+    modelWithParent
 
 
 testRecsAsHtml : List Node -> Html a
@@ -165,6 +193,7 @@ testRecsAsHtml nodes_l =
 main : Html a
 main =
   testRecsAsHtml [t1, t2, t5]
+--  testRecsAsHtml [t4]
 
 
 
