@@ -14,15 +14,6 @@
 
 module RSyncConfig exposing (..)
 
---import Html exposing (..)
---import Html.App
---import Html.Events exposing (..)
---import Html.Attributes exposing (..)
---import Http exposing (..)
---import Task
---import Json.Decode as JD exposing ((:=))
---import Json.Encode as JE
-
 import Widget.Data.Type exposing (..)
 
 {--------------------------------------
@@ -47,7 +38,6 @@ import Widget as W exposing (
 --
 --   Usages with just one SRC arg and no DEST arg will list the source files instead of copying.
 
---init : (Node, Cmd W.Msg)
 init : Node
 init =
   let
@@ -60,24 +50,28 @@ init =
       , tgtLocationSwitch
       ] (fmtList "{{}}" " ")
 
-    --( root, nodes ) = aRoot "RSync" [
     root = aRoot "RSync" [
       locationSwitches
     ] (fmtList "rsync {{}} # ..." " ")
 
-    
---    aBooT id label descr cmdTrue =
---      aBoolX id label descr True cmdTrue ""
-    
+    -- Options 1
     verbose   = aBool  "v" "Verbose"   "increase verbosity"                            "--verbose"
     quiet     = aBool  "q" "Quiet"     "suppress non-error messages"                   "--quiet"
     checksum  = aBooT  "c" "Checksum"  "skip based on checksum, not mod-time & size"   "--checksum"
     archive   = aBool  "a" "Archive"   "archive mode; equals -rlptgoD (no -H,-A,-X)"   "--archive"
     
+    -- Options 2
     recursive = aBooT  "r" "Recursive" "recurse into directories"                      "--recursive"
     relative  = aBool  "R" "Relative"  "use relative path names"                       "--relative"
     backup    = aBool  "b" "Backup"    "make backups (see --suffix & --backup-dir)"    "--backup"
     update    = aBool  "u" "Update"    "skip files that are newer on the receiver"     "--update"
+
+    -- Options 3
+    dirs          = aBool  "d" "Directories"      "transfer directories without recursing"      "--dirs"
+    links         = aBool  "l" "Symlinks"         "copy symlinks as symlinks"                   "--links"
+    copyLinks     = aBool  "L" "Copy Symlinks"    "transform symlink into referent file/dir"    "--copy-links"
+    copyDirLinks  = aBool  "k" "Copy Dirlinks"    "transform symlink to dir into referent dir"  "--copy-dirlinks"
+
 
     options1 =
       aVertical "flags1" "Options 1" [
@@ -95,10 +89,19 @@ init =
       , update
       ] (fmtList "{{}}" " ")
 
+    options3 =
+      aVertical "flags3" "Options 3" [
+        dirs
+      , links
+      , copyLinks
+      , copyDirLinks
+      ] (fmtList "{{}}" " ")
+
     options =
       aHorizontal "opts" "Options" [
         options1
       , options2
+      , options3
       ] (fmtList "{{}}" " ")
   in
     aVertical "all" "All RSync" [
@@ -126,13 +129,13 @@ init =
             --inplace               update destination files in-place
             --append                append data onto shorter files
             --append-verify         --append w/old data in file checksum
-        -d, --dirs                  transfer directories without recursing
-        -l, --links                 copy symlinks as symlinks
-        -L, --copy-links            transform symlink into referent file/dir
+.        -d, --dirs                  transfer directories without recursing
+.        -l, --links                 copy symlinks as symlinks
+.        -L, --copy-links            transform symlink into referent file/dir
             --copy-unsafe-links     only "unsafe" symlinks are transformed
             --safe-links            ignore symlinks that point outside the tree
             --munge-links           munge symlinks to make them safer
-        -k, --copy-dirlinks         transform symlink to dir into referent dir
+.        -k, --copy-dirlinks         transform symlink to dir into referent dir
         -K, --keep-dirlinks         treat symlinked dir on receiver as dir
         -H, --hard-links            preserve hard links
         -p, --perms                 preserve permissions
