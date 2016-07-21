@@ -135,17 +135,15 @@ update msg model =
     case msg of
       CallWidget wMsg ->
         let
-          ( newRootNode, cmd ) = W.update wMsg
-                                <| getRootNode model
+          ( newRootNode, cmd, saveNeeded ) =
+            W.update wMsg <| getRootNode model
           newRoots =
-            --List.map (replaceRootNode model newRootNode) model.jobs
             Dict.insert model.currJobName newRootNode model.rsyncRoots
         in
           { model
-          --| jobs = newJobs
           | rsyncRoots = newRoots
-          , output = Widget.Gen.cmdOf newRootNode
-          , lastOk = Nothing
+          , output     = ( (Widget.Gen.cmdOf newRootNode) ++ "  " ++ ", save=" ++ (toString saveNeeded) )
+          , lastOk     = Nothing
           } ! [ Cmd.map CallWidget cmd ]
 
       ComboMsg cbMsg ->

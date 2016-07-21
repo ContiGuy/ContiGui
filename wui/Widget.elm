@@ -134,104 +134,6 @@ kidsAsUL : Node -> Html Msg
 kidsAsUL node =
       ul [] ( List.map (\ k -> nodeAsHtmlLI k) ( kidsOf node ) )
 ----------------------------------------------
-
-
-cmdOf : Node -> String
-cmdOf node =
-  let
-    sprintf1 : String -> String -> String
-    sprintf1 str param =
-      RX.replace RX.All (RX.regex "({{}}|%s)") (\_ -> param) str
-
-    sprintf : String -> String -> String -> String
-    sprintf str sFmt param =
-      RX.replace RX.All (RX.regex sFmt) (\_ -> param) str
-
-    insertNodeValue : String -> Node -> String
-    insertNodeValue str kid =
-      sprintf str  ( "{{" ++ kid.rec.id ++ "}}" )  ( cmdOf kid )
-
-    cmdListOfKids : Node -> List String
-    cmdListOfKids node =
-      List.map (\ kid -> cmdOf kid) (kidsOf node)
-
-    cmdsOfKids : String -> Node -> String
-    cmdsOfKids listSep node =
-      join listSep ( cmdListOfKids node )
-
-    kidsCmdletsByIdList : Node -> List (Id, String)
-    kidsCmdletsByIdList node =
-      List.map (\ k -> (k.rec.id, cmdOf k)) (kidsOf node)
-
-    kidsCmdletsByIdDict : Node -> Dict.Dict Id String
-    kidsCmdletsByIdDict node =
-      Debug.log "kids Cmdlets By Id Dict" ( Dict.fromList ( kidsCmdletsByIdList node ) )
-
-    kidsCmdletsListByIds : Node -> List String
-    kidsCmdletsListByIds node =
-      snd ( List.unzip ( Dict.toList ( kidsCmdletsByIdDict node ) ) )
-
-    selectedId node =
-      case node.value of
-        Switch toKidId ->
-          toKidId
-        _ ->
-          ""
-
-    resultCmdlet =
-      case node.rec.fmtr of
-        BoolFmtr cmdTrue cmdFalse ->
-          case node.rec.value of
-            BoolValue b ->
-              if b then cmdTrue
-              else cmdFalse
-            _ ->
-              "!!! NEITHER TRUE NOR FALSE : " ++ (toString node.rec.value)
-              --Debug.crash ("!!! NEITHER TRUE NOR FALSE : " ++ (toString node.rec.value))
-
-        StringFmtr cmdFmt ->
-          case node.rec.value of
-            StringValue strValue ->
-              if strValue == "" then
-                --strValue
-                ""
-              else
-                sprintf1 cmdFmt strValue
-            _ ->
-              "!!! NOT A STRING : " ++ (toString node.rec.value)
-              --Debug.crash ("!!! NOT A STRING : " ++ (toString node.rec.value))
-
-        KidsListFmtr sFmt listSep ->
-          sprintf1 sFmt ( cmdsOfKids listSep node )
-
-{------------------------------------------------------------------------
-        KidsByIdFmtr sFmt listSep ->
-          -- cmdlet = sprintf sFmt ( join ( ListOf ( cmdOf kid ) SortedById ) sSep )
-          -- order of kids is sorted by their Ids
-          sprintf1 sFmt ( join listSep ( kidsCmdletsListByIds node ) )
-------------------------------------------------------------------------}
-
-        SelectedKidFmtr ->
-          case (getSelectedKid (selectedId node.rec) node) of
-            Just kid ->
-              cmdOf kid
-            Nothing ->
-              "!!! NOTHING SELECTED : " ++ (toString node.rec.value)
-
-{-------------------------------------------
-        EmptyFmtr ->
-          --Debug.crash ("!!! EMPTY : " ++ (toString node.fmtr))
-          "!!! EMPTY : " ++ (toString node.fmtr)
--------------------------------------------}
-
-  in
-    ---Debug.log ("cmdOf " ++ node.id) resultCmdlet
-    resultCmdlet
-
-
-getSelectedKid : Id -> Node -> Maybe Node
-getSelectedKid sid node =
-  List.head ( List.filter (\ kid -> kid.rec.id == sid ) (kidsOf node) )
 ----------------------------------------------}
 
 
@@ -245,11 +147,11 @@ getSelectedKid sid node =
 type Msg =
     Modify Id Value
 
-update : Msg -> Node -> ( Node, Cmd Msg )
+update : Msg -> Node -> ( Node, Cmd Msg, Bool )
 update msg node =
   mapUpdate (updateSingleNode msg) node
 
-updateSingleNode : Msg -> Node -> ( Node, Cmd Msg )
+updateSingleNode : Msg -> Node -> ( Node, Cmd Msg, Bool )
 updateSingleNode msg node =
   case msg of
     Modify id val ->
@@ -265,25 +167,52 @@ updateSingleNode msg node =
                       | value = Debug.log ( "update " ++ node.rec.label ) value
                       }
               }
-            , Cmd.none )
+            , Cmd.none, valueUpdateRequiresSaving value )
         else
-          ( node, Cmd.none )
+          ( node, Cmd.none, False )
 
 
 {-----------------------------------------------------------}
-mapUpdate : (Node -> (Node, Cmd a)) -> Node -> (Node, Cmd a)
+mapUpdate : (Node -> (Node, Cmd a, Bool)) -> Node -> (Node, Cmd a, Bool)
 mapUpdate f node =
   let
-    ( newNode, cmd )  = f node
-    ( newKids, cmds ) = List.unzip ( List.map (mapUpdate f) (kidsOf node) )
+    ( newNode, cmd, saveNeeded )  = f node
+    ( newKids, cmds, savesNeeded_l ) = unzip3 ( List.map (mapUpdate f) (kidsOf node) )
   in
-    --( { newNode | kids = KidsList newKids }
     ( replaceKids newNode newKids
-    --( { newNode | tree = Kids newKids }
-    , Cmd.batch ( cmd :: cmds ) )
+    , Cmd.batch ( cmd :: cmds )
+    , List.foldl (||) False (saveNeeded :: savesNeeded_l)
+    )
 -----------------------------------------------------------}
 
+--or newVal oldVal =
+  --newVal || oldVal
 
+unzip3 : List ( a, b, c ) -> ( List a, List b, List c )
+unzip3 typle3_l =
+    -- foldl : (a -> b -> b) -> b -> List a -> b
+    List.foldl append3Tuple ([], [], []) typle3_l
+
+append3Tuple
+    : ( a, b, c )
+    -> ( List a, List b, List c )
+    -> ( List a, List b, List c )
+append3Tuple tuple3 listsTuple =
+  case listsTuple of
+    (x_l, y_l, z_l) ->
+      case tuple3 of
+        (x, y, z) ->
+          (x_l ++ [x], y_l ++ [y], z_l ++ [z])
+
+
+valueUpdateRequiresSaving : Value -> Bool
+valueUpdateRequiresSaving value =
+  case value of
+    BoolValue _   ->   True
+    StringValue _ ->   False
+    RootCmd       ->   False
+    Group _       ->   False
+    Switch _      ->   True
 
 
 -- VIEW

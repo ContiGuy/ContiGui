@@ -1,0 +1,47 @@
+@startuml
+
+' for help see: http://plantuml.com/sequence.html
+
+actor User
+participant Wui
+participant Srv
+
+Wui  ->  Srv: load JobTypes
+Wui  <-- Srv: Job types and names
+' Wui  -->  Wui: display JobTypes\n and Job names
+Wui  -->  Wui: display JobTypes
+
+'loop until you are tired
+loop
+ User -->  Wui: select JobType
+ Wui  -->  Wui: display Job names
+
+ 'loop as long as jobs of that type need changes
+  User -->  Wui: select Job
+  Wui  ->   Srv: load Job (by name)
+  Wui  <--  Srv: Job details
+  Wui  -->  Wui: display Job
+
+  loop as long as jobs of that type need changes
+   loop until satisfied with job
+    User -->  Wui: modify Job
+    Wui  ->   Srv: save Job
+    Wui  <--  Srv: [Job details]
+   end
+
+   User -->  Wui: select new Job
+   Wui  ->   Srv: save old Job
+   Wui  <--  Srv: new Job details
+   Wui  -->  Wui: display new Job
+  end
+end
+
+User -->  Wui: save
+Wui  ->   Srv: save Job
+Wui  ->   Srv: commit
+Srv  -->  Srv: git commit all\n JobTypes and Jobs
+
+
+' Alice -> Bob: Another authentication Request
+' Alice <-- Bob: another authentication Response
+@enduml
