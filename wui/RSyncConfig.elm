@@ -55,16 +55,16 @@ init =
     ] (fmtList "rsync {{}} # ..." " ")
 
     -- Options 1
-    verbose   = aBool  "v" "Verbose"   "increase verbosity"                            "--verbose"
-    quiet     = aBool  "q" "Quiet"     "suppress non-error messages"                   "--quiet"
-    checksum  = aBooT  "c" "Checksum"  "skip based on checksum, not mod-time & size"   "--checksum"
-    archive   = aBool  "a" "Archive"   "archive mode; equals -rlptgoD (no -H,-A,-X)"   "--archive"
-    
+    verbose       = aBool  "v" "Verbose"   "increase verbosity"                            "--verbose"
+    quiet         = aBool  "q" "Quiet"     "suppress non-error messages"                   "--quiet"
+    checksum      = aBooT  "c" "Checksum"  "skip based on checksum, not mod-time & size"   "--checksum"
+    archive       = aBool  "a" "Archive"   "archive mode; equals -rlptgoD (no -H,-A,-X)"   "--archive"
+
     -- Options 2
-    recursive = aBooT  "r" "Recursive" "recurse into directories"                      "--recursive"
-    relative  = aBool  "R" "Relative"  "use relative path names"                       "--relative"
-    backup    = aBool  "b" "Backup"    "make backups (see --suffix & --backup-dir)"    "--backup"
-    update    = aBool  "u" "Update"    "skip files that are newer on the receiver"     "--update"
+    recursive     = aBooT  "r" "Recursive" "recurse into directories"                      "--recursive"
+    relative      = aBool  "R" "Relative"  "use relative path names"                       "--relative"
+    backup        = aBool  "b" "Backup"    "make backups (see --suffix & --backup-dir)"    "--backup"
+    update        = aBool  "u" "Update"    "skip files that are newer on the receiver"     "--update"
 
     -- Options 3
     dirs          = aBool  "d" "Directories"      "transfer directories without recursing"      "--dirs"

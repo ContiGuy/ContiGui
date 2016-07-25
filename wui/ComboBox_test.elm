@@ -16,16 +16,17 @@ module ComboBox_test exposing (..)
 
 import ComboBox
 
-import Widget as W -- exposing (..)
+--import Widget as W -- exposing (..)
 
 import Html exposing (..)
-import Html.Events exposing (..)
-import Html.Attributes exposing (..)
+--import Html.Events exposing (..)
+--import Html.Attributes exposing (..)
 import Html.App
-import Cmd.Extra
-import String exposing (..)
+--import Cmd.Extra
+--import String exposing (..)
 
 
+main : Program Never
 main =
   Html.App.program {
     init = init,
@@ -46,7 +47,7 @@ type alias Model =
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model ComboBox.init, Cmd.none )
+    ( Model ComboBox.testInit, Cmd.none )
 
 
 -- UPDATE
@@ -89,6 +90,11 @@ onSuccess chosen =
 
 view : Model -> Html Msg
 view model =
+  Html.App.map ComboMsg ( ComboBox.view [ Html.text "Test: Pick new" ] "--" ComboBox.Select model.combo )
+
+  --Html.App.map ComboMsg ( ComboBox.view model.combo )
+
+  {----------------------------------------------------
   table [] [ tr [] [
     td [] [ ComboBox.viewOption "--" select model.combo ]
   , td [] [ ComboBox.viewButton (\ s -> text ( "Save '" ++ s ++ "' !" ) ) success model.combo ]
@@ -96,11 +102,14 @@ view model =
   , td [] [ Html.App.map ComboMsg ( ComboBox.viewField model.combo ) ]
   , td [] [ Html.App.map ComboMsg ( ComboBox.viewDbg model.combo ) ]
   ] ]
+  --------------------------------------------------}
 
-select : String -> Msg
+{----------------------------
+select : String -> msg
 select str =
-  Select str
+  ComboBox.Select str
 
 success : String -> Msg
 success str =
   Success str
+----------------------------}

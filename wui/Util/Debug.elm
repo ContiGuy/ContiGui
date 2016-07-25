@@ -53,8 +53,8 @@ update msg model =
 {------------------------------------------------------------------
 ------------------------------------------------------------------}
 
-viewDbgStr : String -> Model -> Html.Html Msg
-viewDbgStr errStr model =
+viewDbgStr : String -> String -> Model -> Html.Html Msg
+viewDbgStr label errStr model =
   let
     dbgInfoHtml =
       if model.debug then
@@ -63,13 +63,15 @@ viewDbgStr errStr model =
           Html.div [] []
   in
       Html.div [] [
-        Html.label [] [ Html.text "debug" ]
-      , Html.input [
-          Html.Attributes.type' "checkbox"
+        Html.label []
+        [ Html.text ("debug " ++ label)
+        , Html.input
+          [ Html.Attributes.type' "checkbox"
           , Html.Attributes.checked model.debug
           , Html.Events.onCheck ToggleDebug
-        ] []
-      , dbgInfoHtml
+          ] []
+        , dbgInfoHtml
+        ]
       ]
 
 {------------------------------------------------------------------

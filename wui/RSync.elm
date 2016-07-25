@@ -188,7 +188,7 @@ update msg model =
           | output = "RSync.JobSaveRequested '" ++ str ++ "' ..."
           , lastOk = Just ( "saving job " ++ str ++ " ..." )
           }
-          ! [ saveCmdMsg ]   -- Cmd.batch [ saveCmdMsg, xCmdMsg ] ]
+          ! [ saveCmdMsg ]
 
       SaveSucceed saveResult ->
         let

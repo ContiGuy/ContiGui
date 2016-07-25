@@ -147,11 +147,13 @@ kidsAsUL node =
 type Msg =
     Modify Id Value
 
-update : Msg -> Node -> ( Node, Cmd Msg, Bool )
+--update : Msg -> Node -> ( Node, Cmd Msg, Bool )
+update : Msg -> Node -> ( Node, Cmd Msg )
 update msg node =
   mapUpdate (updateSingleNode msg) node
 
-updateSingleNode : Msg -> Node -> ( Node, Cmd Msg, Bool )
+--updateSingleNode : Msg -> Node -> ( Node, Cmd Msg, Bool )
+updateSingleNode : Msg -> Node -> ( Node, Cmd Msg )
 updateSingleNode msg node =
   case msg of
     Modify id val ->
@@ -167,26 +169,35 @@ updateSingleNode msg node =
                       | value = Debug.log ( "update " ++ node.rec.label ) value
                       }
               }
-            , Cmd.none, valueUpdateRequiresSaving value )
+            , Cmd.none
+            --, valueUpdateRequiresSaving value
+            )
         else
-          ( node, Cmd.none, False )
+          ( node, Cmd.none
+          --, False
+          )
 
 
 {-----------------------------------------------------------}
-mapUpdate : (Node -> (Node, Cmd a, Bool)) -> Node -> (Node, Cmd a, Bool)
+--mapUpdate : (Node -> (Node, Cmd a, Bool)) -> Node -> (Node, Cmd a, Bool)
+mapUpdate : (Node -> (Node, Cmd a)) -> Node -> (Node, Cmd a)
 mapUpdate f node =
   let
-    ( newNode, cmd, saveNeeded )  = f node
-    ( newKids, cmds, savesNeeded_l ) = unzip3 ( List.map (mapUpdate f) (kidsOf node) )
+--    ( newNode, cmd, saveNeeded )  = f node
+    ( newNode, cmd )  = f node
+--    ( newKids, cmds, savesNeeded_l ) = unzip3 ( List.map (mapUpdate f) (kidsOf node) )
+    ( newKids, cmds ) = List.unzip ( List.map (mapUpdate f) (kidsOf node) )
   in
     ( replaceKids newNode newKids
     , Cmd.batch ( cmd :: cmds )
-    , List.foldl (||) False (saveNeeded :: savesNeeded_l)
+    --, List.foldl (||) False (saveNeeded :: savesNeeded_l)
+--    , anyIsTrue <| saveNeeded :: savesNeeded_l
     )
 -----------------------------------------------------------}
 
---or newVal oldVal =
-  --newVal || oldVal
+anyIsTrue : List Bool -> Bool
+anyIsTrue bool_l =
+  List.foldl (||) False bool_l
 
 unzip3 : List ( a, b, c ) -> ( List a, List b, List c )
 unzip3 typle3_l =

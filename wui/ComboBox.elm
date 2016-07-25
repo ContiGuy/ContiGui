@@ -18,8 +18,10 @@ import Html -- exposing (..)
 import Html.Events -- exposing (..)
 import Html.Attributes -- exposing (..)
 -- import Html.App
-import String
+import Css -- exposing (..)
 
+import String
+--import Dict
 
 {----------------------------------------------
 main =
@@ -36,8 +38,9 @@ main =
 -- MODEL
 
 type alias Model =
-    { field      : String
-    , tmpField   : String
+    { current    : String
+    , editField  : String
+    --, entries    : Dict.Dict String String
     , entries    : List String
     , debug      : Bool
     }
@@ -45,33 +48,22 @@ type alias Model =
 {------------------------------
 ------------------------------}
 
-init : Model
-init =
-  Model "" "default" [""] False
+init : List String -> Model
+init entries =
+  --Model "" "default" (Dict.fromList [("","")]) False
+  --Model "" "default" ["", "aa", "bb"] False
+  Model "" "" entries False
+
+testInit : Model
+testInit =
+  --Model "" "default" (Dict.fromList [("","")]) False
+  --Model "" "default" ["", "aa", "bb"] False
+  init ["aa", "bbbb"]
 
 
 
 {------------------------------
-{-| 
-    The configuration for the ComboBox you embed.
-    The `actionMessage` is an optional `Signal.Message` we will send when the user
-    clicks the action button.
--}
-{-
-    The `header`, `body` and `footer` are all `Maybe (Html msg)` blocks.
-    Those `(Html msg)` blocks can be as simple or as complex as any other view function.
-    Use only the ones you want and set the others to `Nothing`.
--}
-type alias Config msg =
-    { actionMessage : msg
-    --, header : Maybe (Html msg)
-    --, body : Maybe (Html msg)
-    --, footer : Maybe (Html msg)
-    }
 ------------------------------}
-
-
-
 
 
 -- UPDATE
@@ -81,6 +73,7 @@ type Msg
   | Select String
   | Success String
   | ToggleDebug Bool
+  --| NewOptions ( List (String, String) )
   | NewOptions ( List String )
 
 
@@ -89,17 +82,21 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
     UpdateField str ->
-      { model | tmpField = str, field = "" } ! []
+      { model | editField = str, current = "" } ! []
 
     Select str ->
-      updateWith False str model
+      --updateWith False str model
+      { model
+      | current = str
+      , editField = str
+      } ! []
 
     Success str ->
       updateWith True str model
 
     ToggleDebug dbg ->
       { model | debug = dbg } ! []
-    
+
     -- NewOptions ( List String )
     NewOptions newOpts ->
       let
@@ -111,9 +108,10 @@ update msg model =
               ( "", [] )
       in
         { model
+        --| entries = Dict.fromList newEntries
         | entries = newEntries
-        , field = newField
-        , tmpField = ""
+        , current = newField
+        , editField = ""
         } ! []
 
 
@@ -132,45 +130,118 @@ updateWith updateEntries str model =
             model.entries
       in
         { model
-        | field = str
-        , tmpField = ""
+        | current = str
+        , editField = ""
         , entries = nEntries
         } ! []
 
 
 -- VIEW
 
-{------------------------------------------------------------------
-------------------------------------------------------------------}
+viewTest : Model -> Html.Html Msg
+viewTest model =
+  Html.table [] [ Html.tr [] [
+    --Html.td [] [ viewX [ Html.text "Test: Pick new" ] "--" Select model ]  --.combo ]
+    Html.td [] [ viewX [ Html.text "Test: Pick new" ] "--" Select model ]  --.combo ]
+--  , Html.td [] [ viewButton (\ s -> Html.text ( "Save '" ++ s ++ "' !" ) ) Success model]  --.combo ]
+--  , Html.td [] [ viewButton (\ s -> Html.text "Save" ) Success model]  --.combo ]
+  --, Html.td [] [ Html.label [] [ Html.text "Test: Pick new" ] ]
+--  , Html.td [] [ --Html.App.map ComboMsg
+  --                  ( viewField model ) ]  --.combo ) ]
+--  , Html.td [] [ --Html.App.map ComboMsg
+  --                  ( viewDbg model ) ]  -- .combo ) ]
+  ] ]
 
-isEmptyString : String -> Bool
-isEmptyString s =
-  String.isEmpty ( String.trim s )
 
-viewButton : (String -> Html.Html msg) -> (String -> msg) -> Model -> Html.Html msg
-viewButton labeller actionMsg model =
-  let
-      fieldIsEmpty    = isEmptyString model.field
-      tmpFieldIsEmpty = isEmptyString model.tmpField
 
-{-------------------------------------------------------------------
--------------------------------------------------------------------}
-      isBlocked =
-        fieldIsEmpty && tmpFieldIsEmpty
-      actionStr =
-        if fieldIsEmpty then
-          String.trim model.tmpField
-        else
-          String.trim model.field
-  in
-      Html.button [ Html.Events.onClick ( actionMsg actionStr )
-             , Html.Attributes.disabled isBlocked
-             ] [ labeller actionStr ]
-{-------------------------------------------------------------------
--------------------------------------------------------------------}
+--view : Model -> Html.Html msg
+--view model =
+view : List String -> String -> (String -> Msg) -> Model -> Html.Html Msg
+view labels neutralEntry selectMsg model =
+    let
+        xLabels = List.map Html.text labels
+    in
+        viewX xLabels neutralEntry selectMsg model
 
-viewOption : String -> (String -> msg) -> Model -> Html.Html msg
-viewOption neutralEntry selectMsg model =
+viewX : List (Html.Html Msg) -> String -> (String -> Msg) -> Model -> Html.Html Msg
+viewX labels neutralEntry selectMsg model =
+    let
+        txt s =
+          if s == "" then
+            neutralEntry
+          else
+            s
+        txt1 s =
+          txt (
+              if s == model.current then
+                "[ " ++ s ++ " ]"
+              else
+                s
+              )
+        selection0 s =
+            [ Html.Events.onClick (selectMsg s) ] ++ [
+            {--------------------------------------}
+                if s == model.current then
+                  Html.Attributes.style [ ("backgoundColor", "blue") ]
+                else
+                  Html.Attributes.style []
+            --------------------------------------}
+            ]
+        selectionStyle s =
+            --[ Html.Events.onClick (selectMsg s) ] ++
+            [
+            {--------------------------------------}
+                if s == model.current then
+                  --Html.Attributes.style [ ("backgound-color", "blue") ]
+                  stylesheet.class DropDownSelected
+                else
+                  --Html.Attributes.style []
+                  --[ stylesheet.class DropDownContent ]
+                  stylesheet.class DropDownUnselected
+            --------------------------------------}
+            ]
+    in
+      Html.div []
+      [ Css.style [] stylesheet
+      , Html.div [ stylesheet.class DropDown ]
+        [
+          Html.table [] [ Html.tr [] [
+            Html.td [] labels
+          , Html.td []
+              [ viewField model
+              , Html.table [ stylesheet.class DropDownContent ]
+                  ( List.map (\ lbl ->
+                    Html.tr [ Html.Attributes.style [ ("width", "100%") ] ]
+                    [ Html.td [ Html.Attributes.style [ ("width", "100%") ] ]
+                      [ Html.button
+                        --( selection0 lbl )
+                        [ Html.Attributes.style
+                          [ ("width", "100%")
+                          , ("background-color", "#bbbbbb")
+                          ]
+                        ]
+                        [ --Html.label (selectionStyle lbl) [
+                          Html.text (txt lbl)
+                        ] --]
+                      ]
+                      {----------------------------
+                      [ Html.button ( selection0 lbl )
+                        [ --Html.label (selectionStyle lbl) [
+                          Html.text (txt lbl)
+                        ] --]
+                      ]
+                      --------------------------------}
+                    ]
+                  ) model.entries )
+              ]
+          , Html.td [] [ viewDbg model ]
+          ] ]
+        ]
+      ]
+
+{-------------------------------------------------------------------}
+viewOption0 : String -> (String -> msg) -> Model -> Html.Html msg
+viewOption0 neutralEntry selectMsg model =
   let
     txt s =
       if s == "" then
@@ -178,9 +249,8 @@ viewOption neutralEntry selectMsg model =
       else
         s
     optAttrs s =
-      ( Html.Attributes.selected ( s == model.field ) ) :: (
-        -- if isEmptyString s || s == model.field then
-        if s == model.field then
+      ( Html.Attributes.selected ( s == model.current ) ) :: (
+        if s == model.current then
           []
         else
           [ Html.Events.onClick (selectMsg s) ]
@@ -190,22 +260,80 @@ viewOption neutralEntry selectMsg model =
   in
     Html.select []
         ( List.map opt model.entries )
+-------------------------------------------------------------------}
+
+
+
+
+{------------------------------------------------------------------
+<style>
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    padding: 12px 16px;
+    z-index: 1;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+</style>
+
+<div class="dropdown">
+  <span>Mouse over me</span>
+  <div class="dropdown-content">
+    <p>Hello World!</p>
+  </div>
+</div>
+------------------------------------------------------------------}
+
+isEmptyString : String -> Bool
+isEmptyString s =
+  String.isEmpty ( String.trim s )
+
+viewButton : (String -> Html.Html msg) -> (String -> msg) -> Model -> Html.Html msg
+viewButton labeller actionMsg model =
+  let
+      currentIsEmpty    = isEmptyString model.current
+      editFieldIsEmpty = isEmptyString model.editField
+
+{-------------------------------------------------------------------
+-------------------------------------------------------------------}
+      isBlocked =
+        currentIsEmpty && editFieldIsEmpty
+      actionStr =
+        if currentIsEmpty then
+          String.trim model.editField
+        else
+          String.trim model.current
+  in
+      Html.button [ Html.Events.onClick ( actionMsg actionStr )
+             , Html.Attributes.disabled isBlocked
+             ] [ labeller actionStr ]
 
 
 viewField : Model -> Html.Html Msg
 viewField model =
   let
-    fieldIsEmpty = String.isEmpty ( String.trim model.field )
+    currentIsEmpty = String.isEmpty ( String.trim model.current )
   in
 {-------------------------------------------------------------------
 -------------------------------------------------------------------}
     Html.input [
       Html.Attributes.type' "text"
-    , Html.Attributes.value model.tmpField
+    , Html.Attributes.value model.editField
     , Html.Events.onInput UpdateField
-    --, disabled ( not fieldIsEmpty )
+    --, disabled ( not currentIsEmpty )
     , Html.Attributes.autofocus True
-                
+
     --, placeholder "What needs to be done?"
     --, name "newTodo"
     --, onInput UpdateField
@@ -236,3 +364,86 @@ viewDbg model =
 
 {--------------------------------------------------------------
 ------------------------------------------------------------}
+
+
+type Class = DropDown | DropDownContent | DropDownSelected | DropDownUnselected
+
+-- import a font
+imports : List a
+--imports = ["https://fonts.googleapis.com/css?family=Droid+Sans:400"]
+imports = []
+
+-- create a rule
+dropDownRule :
+    { descriptor : List ( String, String ), selectors : List (Css.Sel a Class) }
+dropDownRule =
+    { selectors = [Css.Class DropDown]
+    , descriptor = [
+        ("position", "relative")
+      , ("display", "inline-block")
+      ]
+    }
+
+-- create a rule
+dropDownContentRule :
+    { descriptor : List ( String, String ), selectors : List (Css.Sel a Class) }
+dropDownContentRule =
+    { selectors = [Css.Class DropDownContent]
+    , descriptor = [
+        ("position", "absolute")
+      , ("display", "none")
+      {------------------------------------------------------------ }
+        background-color: #f9f9f9;
+        min-width: 60px;
+        max-width: 160px;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        padding: 12px 16px;
+        height: 150px;
+        overflow: scroll;
+      ------------------------------------------------------------}
+      ]
+    }
+
+-- create a rule
+dropDownHoverRule :
+    { descriptor : List ( String, String ), selectors : List (Css.Sel a Class) }
+dropDownHoverRule =
+    { selectors = [Css.Descendant (Css.Class DropDownContent) (Css.Pseudo [Css.Hover] (Css.Class DropDown)) ]
+    , descriptor = [
+        ("display", "block")
+      --, ("backgound-color", "green")
+      ]
+    }
+
+-- create a rule
+dropDownUnselectedRule :
+    { descriptor : List ( String, String ), selectors : List (Css.Sel a Class) }
+dropDownUnselectedRule =
+    { selectors = [Css.Class DropDownUnselected]
+    , descriptor = [
+        ("background-color", "#f0f0f0")
+      --, ("display", "inline-block")
+      ]
+    }
+
+-- create a rule
+dropDownSelectedRule :
+    { descriptor : List ( String, String ), selectors : List (Css.Sel a Class) }
+dropDownSelectedRule =
+    { selectors = [Css.Class DropDownSelected]
+    , descriptor = [
+        ("background-color", "#404040")
+      --, ("display", "inline-block")
+      ]
+    }
+
+-- create the stylesheet
+stylesheet : Css.Stylesheet a Class b
+stylesheet = Css.stylesheet imports
+    [ dropDownHoverRule
+    , dropDownRule
+    , dropDownContentRule
+    , dropDownSelectedRule
+    , dropDownUnselectedRule
+    ]
+
