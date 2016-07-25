@@ -221,7 +221,7 @@ valueUpdateRequiresSaving value =
   case value of
     BoolValue _   ->   True
     StringValue _ ->   False
-    RootCmd       ->   False
+--    RootCmd       ->   False
     Group _       ->   False
     Switch _      ->   True
 
@@ -247,10 +247,10 @@ view node =
       -- node2TR node
       node2Table node
 
-    RootCmd ->
-      div [] ( [
-        h2 [] [ a [ href "http://localhost:33333" ] [ text node.rec.label ] ]
-      ] ++ ( List.map view ( kidsOf node ) ) )
+--    RootCmd ->
+--      div [] ( [
+--        h2 [] [ a [ href "http://localhost:33333" ] [ text node.rec.label ] ]
+--      ] ++ ( List.map view ( kidsOf node ) ) )
 
     -- Group isVertical ->
     Group orientation ->
@@ -390,10 +390,10 @@ viewTuple node =
           ( input [ type' "text", value str, onInput (editString node.rec.id) ] []
           , True
           )
-        RootCmd ->
-          ( view node
-          , True
-          )
+--        RootCmd ->
+--          ( view node
+--          , True
+--          )
 
         --Group isVertical showLabel ->
         Group isVertical ->

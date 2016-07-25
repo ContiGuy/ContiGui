@@ -48,10 +48,11 @@ encodeValue v =
       Json.Encode.object [ ("bool", Json.Encode.bool b ) ]
     StringValue s ->
       Json.Encode.object [ ("string", Json.Encode.string s ) ]
-    RootCmd ->
-      --Json.Encode.object [ ("root", Json.Encode.null ) ]
-      Json.Encode.object [ ("root", Json.Encode.string "RootCmd" ) ]
-      --JE.string "root"
+--    RootCmd ->
+--      --Json.Encode.object [ ("root", Json.Encode.null ) ]
+--      Json.Encode.object [ ("root", Json.Encode.string "RootCmd" ) ]
+--      --JE.string "root"
+
 --    Group vert ->
 --      --JE.object [ ("group", JE.bool vert ) ]
 --      if vert then
@@ -76,7 +77,7 @@ decodeValue =
     Json.Decode.object1 BoolValue ( "bool" := Json.Decode.bool )
   , Json.Decode.object1 StringValue ( "string" := Json.Decode.string )
   --, Json.Decode.object1 identity ( "root" := Json.Decode.null RootCmd )
-  , Json.Decode.object1 rootCmd ( "root" := Json.Decode.string )
+--  , Json.Decode.object1 rootCmd ( "root" := Json.Decode.string )
   --, Json.Decode.string ( null RootCmd )
   --, Json.Decode.object1 Group ( "group" := bool )
   , Json.Decode.object1 Group ( "group" := decodeOrientation )
@@ -128,9 +129,9 @@ selectedKidFmtr _ =
   SelectedKidFmtr
 
 
-rootCmd : String -> Value
-rootCmd _ =
-  RootCmd
+--rootCmd : String -> Value
+--rootCmd _ =
+--  RootCmd
 
 decodeOrientation : Json.Decode.Decoder Orientation
 decodeOrientation =

@@ -50,9 +50,9 @@ init =
       , tgtLocationSwitch
       ] (fmtList "{{}}" " ")
 
-    root = aRoot "RSync" [
-      locationSwitches
-    ] (fmtList "rsync {{}} # ..." " ")
+--    root = aRoot "RSync" [
+--      locationSwitches
+--    ] (fmtList "rsync {{}} # ..." " ")
 
     -- Options 1
     verbose       = aBool  "v" "Verbose"   "increase verbosity"                            "--verbose"
@@ -104,10 +104,12 @@ init =
       , options3
       ] (fmtList "{{}}" " ")
   in
-    aVertical "all" "All RSync" [
+    aVertical "all" "All RSync"
+    [
       options
     , locationSwitches
-    ] (fmtList "{{}}" " ")
+--    ] (fmtList "{{}}" " ")
+    ] (fmtList "rsync {{}} # ..." " ")
 
 {--------------------------------------------------------------------------------------
 .        -v, --verbose               increase verbosity

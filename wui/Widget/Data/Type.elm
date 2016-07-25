@@ -25,7 +25,7 @@ type Tree = Kids (List Node)
 type Value
   = BoolValue Bool
   | StringValue String
-  | RootCmd
+--  | RootCmd
   | Group Orientation
   | Switch Id
 
@@ -72,11 +72,11 @@ fmtList : String -> String -> Formatter
 fmtList cmdFmt listSep =
   KidsListFmtr cmdFmt listSep
 
-aRoot : String -> List Node -> Formatter -> Node
-aRoot label kids_l fmtr =
-    Node
-      ( Record "root" label "root node of the command" RootCmd fmtr )
-      ( Kids kids_l )
+--aRoot : String -> List Node -> Formatter -> Node
+--aRoot label kids_l fmtr =
+--    Node
+--      ( Record "root" label "root node of the command" RootCmd fmtr )
+--      ( Kids kids_l )
 
 aVertical : String -> String -> List Node -> Formatter -> Node
 aVertical id label kids_l fmtr =

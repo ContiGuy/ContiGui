@@ -97,20 +97,7 @@ updateCombo cbmsg model =
         ( cbb, cbmsg' ) = ComboBox.update cbmsg model.combo
         msg1 = Cmd.map ComboMsg ( -- Debug.log "combo"
                                  cbmsg' )
---        action'' =
---          ("Action: " ++ (toString cbmsg) ++ " >> " ++
---          (toString (
---          case cbmsg of
---            ComboBox.UpdateField s ->
---              Debug.log ("combo UpdateField " ++ s) cbmdl
---            ComboBox.Select s ->
---              Debug.log ("combo Select " ++ s) cbmdl
---            ComboBox.NewOptions sl ->
---              Debug.log ("combo NewOptions " ++ (toString sl)) cbmdl
---          )))
         (action', nJob, msg2) =
-          ( --"Action: " ++ (toString cbmsg) ++ " >> " ++
-          (--toString
           (
           case cbmsg of
             ComboBox.UpdateField s ->
@@ -119,8 +106,6 @@ updateCombo cbmsg model =
                 (job', jmsg) = Job.update (Job.Rename s) model.job
                 newJobName = "new job " ++ (toString job'.id) ++ ": " ++ (toString job'.name)
                 _ = Debug.log "JobType.updateCombo:ComboBox.UpdateField" newJobName
---                jRes =
-  --                saveLoadJob model <| findJobId s model
               in
 --                ( "save old job " ++ (toString model.job.id) ++ ": " ++ (toString model.job.name) ++ " to " ++ (toString job'.id) ++ ": " ++ (toString job'.name)
                 ( "save " ++ oldJobName ++ " to " ++ newJobName
@@ -138,8 +123,6 @@ updateCombo cbmsg model =
 --                _ = Debug.log "JobType.updateCombo:ComboBox.Select" s
                 newJobId = findJobId s model
                 (newJob, jmsg) =
-                  --saveLoadJob model.allJobs model.job <| findJobId s model
---                  Job.saveLoadJob model.name model.job  -- newJobId      -- <| findJobId s model
                   Job.update (Job.Save model.name) model.job  -- newJobId      -- <| findJobId s model
                 _ = Debug.log "JobType.updateCombo:ComboBox.Select" newJobName
               in
@@ -156,13 +139,13 @@ updateCombo cbmsg model =
                 ( ("combo other " ++ (toString cbmsg))
                 , model.job
                 , Cmd.none )
-          )))
+          )
       in
         { model
         | combo = cbb
         , action = action'
         , job = nJob
-        } ! [ msg1, msg2 ]   -- Cmd.map JobMsg cbmsg' ]
+        } ! [ msg1, msg2 ]
 
 
 findJobId : String -> Model -> String
