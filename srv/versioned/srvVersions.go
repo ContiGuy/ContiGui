@@ -1,4 +1,4 @@
-package srv
+package versioned
 
 import (
 	"bufio"
@@ -44,7 +44,6 @@ type (
 
 	Job struct {
 		TypeName string `json:"type_name,omitempty"`
-		Id       string `json:"job_id,omitempty"`
 		Name     string `json:"job_name,omitempty"`
 		JsonSha1 string `json:"json_id,omitempty"`
 		YamlSha1 string `json:"yaml_id,omitempty"`
@@ -140,12 +139,6 @@ func ServeGin(port int, baseDir string, htmlFiles_l []string) error {
 		//		time.Sleep(300 * time.Millisecond)
 		eh := errHandler_T{}
 		eh.handleJobPost(baseDir, c)
-	})
-
-	router.PUT("/jobs/:jobType/:jobId", func(c *gin.Context) {
-		//		time.Sleep(300 * time.Millisecond)
-		eh := errHandler_T{}
-		eh.handleJobPut(baseDir, c)
 	})
 
 	router.GET("/jobs/:jobType", func(c *gin.Context) {
@@ -274,158 +267,17 @@ func extractYamlConfig(job_b []byte) (cfg_b []byte, err error) {
 	return cfg_b, err
 }
 
-// (ALWAYS) create an id for a (new) job and save it to disk and return it.
-// if it does not have any node attached to it, return a default job for that job type.
-// cannot ask for another job with any id.
 func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
+	jobTypeName := c.Param("jobType")
+	//		id_s := c.Param("id")
+	newJobId := c.Query("newJobId")
+
 	//... parse JSON in post body
 	defer c.Request.Body.Close()
-
-	var (
-		jobTypeName = c.Param("jobType")
-		//		id_s := c.Param("id")
-		newJobId = c.Query("newJobId")
-	)
-	if newJobId != "" {
-		return /*eh.err =*/ errors.New("POST does not allow to ask for new job id: " + newJobId)
-	}
 
 	var body_b []byte
 	eh.safe(func() { body_b, eh.err = ioutil.ReadAll(c.Request.Body) })
 	log.Info("POSTed to /job", "jobType", jobTypeName, "bytes", len(body_b), "newJobId", newJobId)
-
-	var job Job
-	eh.safe(func() { eh.err = json.Unmarshal(body_b, &job) })
-	eh.safe(func() {
-		eh.err = job.Check()
-		eh.ifErr(func() {
-			body_s := string(body_b)
-			if len(body_s) > 200 {
-				body_s = body_s[:200]
-			}
-			log.Warn("Job.Check failed", "body", body_s)
-		})
-		//		fmt.Printf("got '%s': '''%s''' from %#v\n", cmd_s, cmdRes, node)
-		//			fmt.Printf("got '%s': %#v: %v\n", cmd_s, job, eh.err)
-		//		fmt.Printf("got '%s': err=%v\n", cmd_s, eh.err)
-	})
-
-	eh.safe(func() {
-		job.JsonSha1, job.YamlSha1 =
-			eh.hashSha1(job, json.Marshal),
-			eh.hashSha1(job, yaml.Marshal)
-	})
-
-	var job2_yb []byte
-	eh.safe(func() {
-		job2_yb, eh.err = yaml.Marshal(job)
-	})
-	log.Info("Marshal job to YAML", "jobType", jobTypeName, "size", len(job2_yb))
-
-	timeStamp := "" // fmt.Sprintf("@ %v", time.Now())
-	jobScript_b := []byte(fmt.Sprintf(`#!/bin/bash
-#
-# generated script - do not edit
-#
-cat <<EOYD | less
-#
-# begin:  %[1]s  %[2]s - %[3]s  %[5]s
-#
-
-%[4]s
-#
-# end:  %[1]s  %[2]s - %[3]s  %[5]s
-#
-EOYD
-`,
-		magicLine, job.TypeName, job.Name, job2_yb, timeStamp))
-
-	cmdFName := strings.TrimSpace(strings.ToLower(job.TypeName))
-	cmdDir := filepath.Join(baseDir, cmdFName)
-	os.MkdirAll(cmdDir, 0777)
-
-	jobName := strings.TrimSpace(strings.ToLower(job.Name))
-	log.Info("generated job script",
-		"jobType", jobTypeName, "cmdFName", cmdFName, "cmdDir", cmdDir,
-		"jobName", jobName, "size", len(jobScript_b))
-
-	var jobFPath, cs string
-	eh.safe(func() {
-		cs = eh.hashSha1(jobScript_b, nil)[:6]
-		jobFName := cmdFName + "-" + jobName + "." + cs + ".cgs"
-		jobFPath = filepath.Join(cmdDir, jobFName)
-	})
-
-	haveToSaveJob := true
-
-	fInfo, err := os.Stat(jobFPath)
-	if err == nil && !fInfo.IsDir() {
-		var oldJob_b []byte
-		eh.safe(func() { oldJob_b, eh.err = ioutil.ReadFile(jobFPath) })
-
-		haveToSaveJob = bytes.Compare(jobScript_b, oldJob_b) != 0
-	}
-
-	cmdMsg := " # job already known, not saved: " + jobFPath //-job.Root.CmdLet
-	if haveToSaveJob {
-		eh.safe(func() { eh.err = ioutil.WriteFile(jobFPath, jobScript_b, 0777) })
-		cmdMsg = " # job saved as: " + jobFPath
-	}
-	job.Cmd += cmdMsg
-
-	eh.safe(func() {
-		eh.forAllJobs(
-			baseDir, cmdFName, jobName, "."+cs,
-
-			// cmdDir, cmdName, jobName
-			func(oldJobFPath string, oldJob_b []byte) error {
-				eh.renameToBak(cmdDir, cmdFName, jobName, oldJobFPath, oldJob_b)
-				return eh.err
-			},
-		)
-	})
-
-	eh.safe(func() {
-		//		res := gin.H{
-		//			"job_name": job.Name,
-		//			"json_id":  job.JsonSha1,
-		//			"yaml_id":  job.YamlSha1,
-		//			"cmd":      cmdMsg,
-		//		}
-		//		c.JSON(http.StatusCreated, res)
-
-		//		c.JSON(http.StatusCreated, job)
-
-		switch newJobId {
-		case "":
-		// load new default job, create a new id and return it
-		case job.Nodes[0].Rec.Id:
-			// return same job
-			c.JSON(http.StatusCreated, job)
-		default:
-			// try to find job with that id and load and return it
-		}
-	})
-
-	eh.ifErr(func() { c.AbortWithError(http.StatusBadRequest, eh.err) })
-	return eh.err
-}
-
-// save an existing job (with an existing id) to disk and return it or
-// another job which is identified by the newJobId query parameter.
-func (eh *errHandler_T) handleJobPut(baseDir string, c *gin.Context) error {
-	//... parse JSON in post body
-	defer c.Request.Body.Close()
-
-	var (
-		jobTypeName = c.Param("jobType")
-		jobId       = c.Param("jobId")
-		newJobId    = c.Query("newJobId")
-	)
-
-	var body_b []byte
-	eh.safe(func() { body_b, eh.err = ioutil.ReadAll(c.Request.Body) })
-	log.Info("PUTed to /job", "jobType", jobTypeName, "jobId", jobId, "bytes", len(body_b), "newJobId", newJobId)
 
 	var job Job
 	eh.safe(func() { eh.err = json.Unmarshal(body_b, &job) })

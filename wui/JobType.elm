@@ -2,6 +2,7 @@ module JobType exposing (..)
 
 import Html     exposing (..)
 import Html.App
+import Html.Events
 --import Dict     exposing (..)
 
 --import Http
@@ -52,6 +53,7 @@ init =
 
 type Msg
   = Rename String
+  | NewJob
   | JobMsg Job.Msg
   | ComboMsg ComboBox.Msg
   | DebugMsg Util.Debug.Msg
@@ -59,6 +61,21 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
+    NewJob ->
+            { model
+            | action = "NewJob"
+--            } ! [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.Save model.name "" ]
+            } ! [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.New model.name ]
+----      { model
+----      | name = "newName"
+----      } ! []
+--        let
+--            ( job', jobMsg ) = Job.update (Job.Save) model.job
+--        in
+--            { model
+--            | job = job'
+--            } ! [ Cmd.map JobMsg jobMsg ]
+
     Rename newName ->
       { model
       | name = newName
@@ -76,9 +93,6 @@ update msg model =
       let
         _ = Debug.log "JobType.update:JobMsg" jmsg
         ( jmdl, jmsg' ) = Job.update jmsg model.job
---        case jmsg of
---            Job.SaveSucceed newJob ->
-
       in
         { model
         | job = jmdl
@@ -113,7 +127,7 @@ updateCombo cbmsg model =
 --                , Cmd.map JobMsg jmsg )
                 , Cmd.map JobMsg <| Cmd.batch [
                     jmsg
-                  , Cmd.Extra.message (Job.Save model.name) ]
+                  , Cmd.Extra.message (Job.Save model.name model.job.id) ]
                 )
             ComboBox.Select s ->
               let
@@ -123,7 +137,7 @@ updateCombo cbmsg model =
 --                _ = Debug.log "JobType.updateCombo:ComboBox.Select" s
                 newJobId = findJobId s model
                 (newJob, jmsg) =
-                  Job.update (Job.Save model.name) model.job  -- newJobId      -- <| findJobId s model
+                  Job.update (Job.Save model.name newJobId) model.job      -- <| findJobId s model
                 _ = Debug.log "JobType.updateCombo:ComboBox.Select" newJobName
               in
 --                ( "save job " ++ (toString model.job)
@@ -258,6 +272,13 @@ view : Model -> Html Msg
 view model =
       div []
       [ h2 [] [ text model.name ]
+      , table []
+        [ tr []
+          [ td [] [ button [ Html.Events.onClick NewJob ] [ text "New"] ]
+          , td [] [ button [] [ text "Clone"] ]
+          , td [] [ button [] [ text "Save"] ]
+          ]
+        ]
 
 --      view : List String -> String -> (String -> Msg) -> Model -> Html.Html Msg
 --      view labels neutralEntry selectMsg model =
