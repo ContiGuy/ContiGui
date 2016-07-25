@@ -9,6 +9,7 @@ import Html.App
 --import Time
 --import Json.Encode
 --import Json.Decode
+import Cmd.Extra
 
 --import HttpBuilder exposing (..)
 
@@ -91,6 +92,7 @@ update msg model =
 updateCombo : ComboBox.Msg -> Model -> (Model, Cmd Msg)
 updateCombo cbmsg model =
       let
+        oldJobName = "old job " ++ (toString model.job.id) ++ ": " ++ (toString model.job.name)
 --        _ = Debug.log "JobType.updateCombo" cbmsg
         ( cbb, cbmsg' ) = ComboBox.update cbmsg model.combo
         msg1 = Cmd.map ComboMsg ( -- Debug.log "combo"
@@ -115,25 +117,35 @@ updateCombo cbmsg model =
               let
 --                _ = Debug.log "JobType.updateCombo:ComboBox.UpdateField" s
                 (job', jmsg) = Job.update (Job.Rename s) model.job
-                _ = Debug.log "JobType.updateCombo:ComboBox.UpdateField" job'
+                newJobName = "new job " ++ (toString job'.id) ++ ": " ++ (toString job'.name)
+                _ = Debug.log "JobType.updateCombo:ComboBox.UpdateField" newJobName
 --                jRes =
   --                saveLoadJob model <| findJobId s model
               in
-                ( "save old job " ++ (toString model.job) ++ " to " ++ (toString job')
+--                ( "save old job " ++ (toString model.job.id) ++ ": " ++ (toString model.job.name) ++ " to " ++ (toString job'.id) ++ ": " ++ (toString job'.name)
+                ( "save " ++ oldJobName ++ " to " ++ newJobName
                 , job'
-                , Cmd.map JobMsg jmsg )
+--                , Cmd.map JobMsg jmsg )
+                , Cmd.map JobMsg <| Cmd.batch [
+                    jmsg
+                  , Cmd.Extra.message (Job.Save model.name) ]
+                )
             ComboBox.Select s ->
               let
+                newJobName = "new job " ++ (  -- toString
+                    model.combo.current) ++ ": " ++ (  -- toString
+                    s)
 --                _ = Debug.log "JobType.updateCombo:ComboBox.Select" s
                 newJobId = findJobId s model
                 (newJob, jmsg) =
                   --saveLoadJob model.allJobs model.job <| findJobId s model
 --                  Job.saveLoadJob model.name model.job  -- newJobId      -- <| findJobId s model
                   Job.update (Job.Save model.name) model.job  -- newJobId      -- <| findJobId s model
-                _ = Debug.log "JobType.updateCombo:ComboBox.Select" newJob
+                _ = Debug.log "JobType.updateCombo:ComboBox.Select" newJobName
               in
-                ( "save job " ++ (toString model.job)
-                ++ " and load job " ++ (toString newJob)
+--                ( "save job " ++ (toString model.job)
+--                ++ " and load job " ++ (toString newJob)
+                ( "save " ++ oldJobName ++ " and load " ++ newJobName
                 , newJob
                 , Cmd.map JobMsg jmsg )
             ComboBox.NewOptions sl ->
