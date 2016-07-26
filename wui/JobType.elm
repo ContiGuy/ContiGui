@@ -31,7 +31,7 @@ type alias Model =
   , jobIdNames   : List (String, String)
   , combo        : ComboBox.Model
   , debug        : Util.Debug.Model
-  , action       : String
+--  , action       : String
 --  , allJobs      : Dict.Dict String Job.Model
   }
 
@@ -45,7 +45,7 @@ init =
     ( job, _ ) = Job.init
   in
     ( Model "rsync" "RSync" job []   -- Dict.empty  -- jobNamesById
-      cb Util.Debug.init "State: Just Started"  -- jobs_m
+      cb Util.Debug.init   -- "State: Just Started"  -- jobs_m
     , Cmd.none )
 
 
@@ -60,48 +60,83 @@ type Msg
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-  case msg of
-    NewJob ->
-            { model
-            | action = "NewJob"
---            } ! [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.Save model.name "" ]
-            } ! [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.New model.name ]
-----      { model
-----      | name = "newName"
-----      } ! []
---        let
---            ( job', jobMsg ) = Job.update (Job.Save) model.job
---        in
---            { model
---            | job = job'
---            } ! [ Cmd.map JobMsg jobMsg ]
+    let
+        ( model', msg' ) =
+          case msg of
+            NewJob ->
+        --            { model
+        --            | action = "NewJob"
+        ----            } ! [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.Save model.name "" ]
+        --            } !
+                    model !
+                    [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.New model.name
+                    , Cmd.Extra.message <| DebugMsg <| Util.Debug.Change <| "JobType.NewJob [" ++ model.name ++ "]"
+                    ]
+        ----      { model
+        ----      | name = "newName"
+        ----      } ! []
+        --        let
+        --            ( job', jobMsg ) = Job.update (Job.Save) model.job
+        --        in
+        --            { model
+        --            | job = job'
+        --            } ! [ Cmd.map JobMsg jobMsg ]
 
-    Rename newName ->
-      { model
-      | name = newName
-      } ! []
+            Rename newName ->
+              { model
+              | name = newName
+              } ! []
 
-    DebugMsg dbgMsg ->
-        let
-            ( newDebug, nDbgMsg ) = Util.Debug.update dbgMsg model.debug
-        in
-            { model
-            | debug = newDebug
-            } ! [ Cmd.map DebugMsg nDbgMsg ]
+            DebugMsg dbgMsg ->
+                let
+                    ( newDebug, nDbgMsg ) = Util.Debug.update dbgMsg model.debug
+                in
+                    { model
+                    | debug = newDebug
+                    } ! [ Cmd.map DebugMsg nDbgMsg ]
 
-    JobMsg jmsg ->
-      let
-        _ = Debug.log "JobType.update:JobMsg" jmsg
-        ( jmdl, jmsg' ) = Job.update jmsg model.job
-      in
-        { model
-        | job = jmdl
-        } ! [ Cmd.map JobMsg jmsg' ]
+            JobMsg jmsg ->
+              let
+                _ = Debug.log "JobType.update:JobMsg" jmsg
+                ( jmdl, jmsg' ) = Job.update jmsg model.job
+              in
+                { model
+                | job = jmdl
+                } ! [ Cmd.map JobMsg jmsg' ]
 
-    ComboMsg cbmsg ->
-      updateCombo cbmsg model
---      {--------------------------------------------------------------
---      --------------------------------------------------------------}
+            ComboMsg cbmsg ->
+              updateCombo cbmsg model
+
+        ( debug', dbgMsg' ) =
+            let
+                modelStr = toString
+                    { id = model'.id, name = model'.name }
+            in
+                Util.Debug.update (Util.Debug.Change modelStr) model'.debug
+        _ = Debug.log "JobType.update.debug" debug'
+    in
+        { model'
+        | debug = debug'
+        } !
+        [ msg'
+        , Cmd.map DebugMsg dbgMsg'
+        ]
+      {--------------------------------------------------------------
+        ( debug', dbgMsg' ) =
+            let
+                modelStr = toString
+                    { id = model'.id, name = model'.name }
+            in
+                Util.Debug.update (Util.Debug.Change modelStr) model'.debug
+        _ = Debug.log "Job.update.debug" debug'
+    in
+        { model'
+        | debug = debug'
+        } !
+        [ cmdMsg
+        , Cmd.map DebugMsg dbgMsg'
+        ]
+      --------------------------------------------------------------}
 
 updateCombo : ComboBox.Msg -> Model -> (Model, Cmd Msg)
 updateCombo cbmsg model =
@@ -157,9 +192,13 @@ updateCombo cbmsg model =
       in
         { model
         | combo = cbb
-        , action = action'
+--        , action = action'
         , job = nJob
-        } ! [ msg1, msg2 ]
+        } !
+        [ msg1
+        , msg2
+        , Cmd.Extra.message <| DebugMsg <| Util.Debug.Change action'
+        ]
 
 
 findJobId : String -> Model -> String
@@ -284,5 +323,6 @@ view model =
 --      view labels neutralEntry selectMsg model =
       , Html.App.map ComboMsg <| ComboBox.view ["Job"] "--" ComboBox.Select model.combo
       , Html.App.map JobMsg   <| Job.view model.name model.job
-      , Html.App.map DebugMsg <| Util.Debug.viewDbgStr "JobType" model.action model.debug
+--      , Html.App.map DebugMsg <| Util.Debug.viewDbgStr "JobType" model.action model.debug
+      , Html.App.map DebugMsg <| Util.Debug.view "JobType" model.debug
       ]

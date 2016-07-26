@@ -19,6 +19,7 @@ import Html.Events -- exposing (..)
 import Html.Attributes -- exposing (..)
 --import String
 
+import Json.Encode
 import Json.Decode       exposing ((:=))
 import Json.Decode.Extra exposing ((|:))
 
@@ -28,6 +29,7 @@ import Json.Decode.Extra exposing ((|:))
 
 type alias Model =
     { debug      : Bool
+    , state      : String
     }
 
 {------------------------------
@@ -35,13 +37,14 @@ type alias Model =
 
 init : Model
 init =
-  Model False
+  Model False ""
 
 
 -- UPDATE
 
 type Msg
   = ToggleDebug Bool
+  | Change String
 
 
 -- How we update our Model on a given Msg?
@@ -50,6 +53,8 @@ update msg model =
   case msg of
     ToggleDebug dbg ->
       { model | debug = dbg } ! []
+    Change s ->
+      { model | state = s } ! []
 
 
 
@@ -58,12 +63,15 @@ update msg model =
 {------------------------------------------------------------------
 ------------------------------------------------------------------}
 
-viewDbgStr : String -> String -> Model -> Html.Html Msg
-viewDbgStr label errStr model =
+--viewDbgStr : String -> String -> Model -> Html.Html Msg
+--viewDbgStr label errStr model =
+
+view : String -> Model -> Html.Html Msg
+view label model =
   let
     dbgInfoHtml =
       if model.debug then
-          Html.text errStr
+          Html.text model.state
       else
           Html.div [] []
   in
@@ -101,6 +109,17 @@ viewDbgOptStr model optErrStr =
       ]
 ------------------------------------------------------------------}
 
-decodeDebug =
+encode : Model -> Json.Encode.Value
+encode model =
+    Json.Encode.object (
+        [ ("debug",    Json.Encode.bool model.debug)
+        , ("state",    Json.Encode.string model.state)
+        ]
+      )
+
+
+decode : Json.Decode.Decoder Model
+decode =
     Json.Decode.succeed Model
         |: ("debug"    := Json.Decode.bool)
+        |: ("state"    := Json.Decode.string)

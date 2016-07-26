@@ -8,6 +8,7 @@ import Task
 import Json.Encode
 import Json.Decode       exposing ((:=))
 import Json.Decode.Extra exposing ((|:))
+import Cmd.Extra
 
 --import HttpBuilder       exposing (..)
 
@@ -28,7 +29,7 @@ type alias Model =
 --  , node         : Maybe Node
   , node         : Node
   , debug        : Util.Debug.Model
-  , output       : String
+--  , output       : String
 --  , defaultRoot  : Node
   }
 
@@ -39,7 +40,7 @@ init =
 --        node = RSyncConfig.init
         node = aVertical "empty-job" "Empty Job" [] <| fmtList "<<EMPTY JOB -- DON'T USE>>" ", "
     in
-        ( Model node.rec.id node.rec.label node Util.Debug.init ""
+        ( Model node.rec.id node.rec.label node Util.Debug.init --""
         , Cmd.none )
 
 
@@ -57,70 +58,85 @@ type Msg
 --update : Msg -> { mdl | name : String } -> ( { mdl | name : String }, Cmd msg )
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-  case msg of
-    New jobTypeName ->
-        let
-            sljCmd = newJob jobTypeName model   -- newJobId
-            _ = Debug.log "Job.update:newJob" sljCmd
-        in
-            ( model, sljCmd )
+    let
+        ( model', cmdMsg ) =
+          case msg of
+            New jobTypeName ->
+                let
+                    sljCmd = newJob jobTypeName model   -- newJobId
+                    _ = Debug.log "Job.update:newJob" sljCmd
+                in
+        --            ( model, sljCmd )
+                    model !
+                    [ sljCmd
+--                    , Cmd.Extra.message <| DebugMsg <| Util.Debug.Change <|"Job.New [" ++ jobTypeName ++ "]"
+                    ]
 
-    Rename newName ->
-      { model
-      | name = newName
-      } ! []
+            Rename newName ->
+              { model
+              | name = newName
+              } ! []
 
-    WidgetMsg wm ->
-        let
-            (node', wm') =
-                Widget.update wm model.node
---                case model.node of
---                    Nothing  -> ( model.node, Cmd.none )
---                    Just nod ->
---                        let
---                            ( nod', wmsg2) = Widget.update wm nod
---                        in
---                            ( Just nod', wmsg2 )
-        in
-            { model
-            | node = node'
-            } ! [ Cmd.map WidgetMsg wm' ]
+            WidgetMsg wm ->
+                let
+                    (node', wm') =
+                        Widget.update wm model.node
+                in
+                    { model
+                    | node = node'
+                    } ! [ Cmd.map WidgetMsg wm' ]
 
-    Save jobTypeName newJobId ->
-        let
-            sljCmd = saveLoadJob jobTypeName model newJobId
-            _ = Debug.log "Job.update:saveLoadJob" sljCmd
-        in
-            ( model, sljCmd )
+            Save jobTypeName newJobId ->
+                let
+                    sljCmd = saveLoadJob jobTypeName model newJobId
+                    _ = Debug.log "Job.update:saveLoadJob" sljCmd
+                in
+                    ( model, sljCmd )
 
-    SaveSucceed newModel ->   -- Model ->
-        newModel ! []
---        let
---          ( nCombo, nCbMsg ) =
---            ComboBox.update (ComboBox.Success saveResult.jobName) model.combo
---        in
---          { model
---          | combo = nCombo
---          , output = toString saveResult
---          , lastErr = Nothing
---          , lastOk = Just ( "job " ++ saveResult.jobName ++ " saved" )
---          } ! [ Cmd.map ComboMsg nCbMsg ]
+            SaveSucceed newModel ->   -- Model ->
+                newModel ! []
+        --        let
+        --          ( nCombo, nCbMsg ) =
+        --            ComboBox.update (ComboBox.Success saveResult.jobName) model.combo
+        --        in
+        --          { model
+        --          | combo = nCombo
+        --          , output = toString saveResult
+        --          , lastErr = Nothing
+        --          , lastOk = Just ( "job " ++ saveResult.jobName ++ " saved" )
+        --          } ! [ Cmd.map ComboMsg nCbMsg ]
 
-    SaveFail err ->   -- Http.Error ->
-        model ! []
---          { model
---          | output = toString err
---          , lastErr = Just err
---          , lastOk = Nothing
---          } ! []
+            SaveFail err ->   -- Http.Error ->
+                model ! [
+                  Cmd.Extra.message <| DebugMsg <| Util.Debug.Change <| "Job.SaveFail: " ++ (toString err)
+                ]
+        --          { model
+        --          | output = toString err
+        --          , lastErr = Just err
+        --          , lastOk = Nothing
+        --          } ! []
 
-    DebugMsg dbgMsg ->
-        let
-            ( newDebug, nDbgMsg ) = Util.Debug.update dbgMsg model.debug
-        in
-            { model
-            | debug = newDebug
-            } ! [ Cmd.map DebugMsg nDbgMsg ]
+            DebugMsg dbgMsg ->
+                let
+                    ( newDebug, nDbgMsg ) = Util.Debug.update dbgMsg model.debug
+                in
+                    { model
+                    | debug = newDebug
+                    } ! [ Cmd.map DebugMsg nDbgMsg ]
+        ( debug', dbgMsg' ) =
+            let
+                modelStr = toString
+                    { id = model'.id, name = model'.name }
+            in
+                Util.Debug.update (Util.Debug.Change modelStr) model'.debug
+        _ = Debug.log "Job.update.debug" debug'
+    in
+        { model'
+        | debug = debug'
+        } !
+        [ cmdMsg
+        , Cmd.map DebugMsg dbgMsg'
+        ]
 
 
 -- VIEW
@@ -138,7 +154,8 @@ view jobTypeName model =
       tr []
       [ td [] [ Html.App.map WidgetMsg (Widget.view model.node) ]
       ]
-    , Html.App.map DebugMsg ( Util.Debug.viewDbgStr "Job" model.output model.debug )
+--    , Html.App.map DebugMsg ( Util.Debug.viewDbgStr "Job" model.output model.debug )
+    , Html.App.map DebugMsg ( Util.Debug.view "Job" model.debug )
     ]
   ]
 
@@ -161,7 +178,7 @@ newJob jobTypeName model =
 
 
 newJobCall : String -> Model -> Task.Task Http.Error Model
-newJobCall jobTypeName job =
+newJobCall jobTypeName model =
   let
     url = "/jobs/RSync"
 --      ++ ( if newJobId == "" then ""
@@ -169,10 +186,7 @@ newJobCall jobTypeName job =
 --      )
 --        ++ "/" ++ job.id
     body_s =
-----      initJob jobName model
---      { job | node = 2 }
---        |>
-      encodeJobX jobTypeName job
+      encodeJobX jobTypeName model
         [ ("default_root",      Widget.Data.Json.encodeNode RSyncConfig.init)
 --        [ ("default_root",      Widget.Data.Json.encodeNode RSyncConfig.fake)
         ]
@@ -197,21 +211,27 @@ saveLoadJob jobTypeName model newJobId =
 --saveLoadJobCall : String -> Model -> Task.Task (HttpBuilder.Error String) (HttpBuilder.Response (Model))
 saveLoadJobCall : String -> Model -> String -> Task.Task Http.Error Model
 --saveLoadJobCall jobTypeName job =
-saveLoadJobCall jobTypeName job newJobId =
+saveLoadJobCall jobTypeName model newJobId =
   let
-    url = "/jobs/RSync" ++ "/" ++ job.id ++
+    url = "/jobs/RSync" ++ "/" ++ model.id ++
       ( if newJobId == "" then ""
         else "?newJobId=" ++ newJobId
       )
     body_s =
 --      initJob jobName model
-      job
-        |> encodeJob jobTypeName
+--      job
+--        |>
+      encodeJob jobTypeName model
         |> Json.Encode.encode 2
   in
     httpSend "PUT" decodeJob url (Http.string body_s)
 
-
+httpSend
+    : String
+    -> Json.Decode.Decoder a
+    -> String
+    -> Http.Body
+    -> Task.Task Http.Error a
 httpSend verb decoder url body =
   let request =
         { verb = verb   -- "POST"
@@ -257,8 +277,8 @@ decodeJob =
         |: ("root"      := Widget.Data.Json.decodeNode)
 --        |: ("debug"     := Json.Decode.bool)
 --        |: ("output"    := Json.Decode.string)
-        |: ( Json.Decode.Extra.withDefault Util.Debug.init (Util.Debug.decodeDebug )  )
-        |: ( Json.Decode.Extra.withDefault "" ("output"    := Json.Decode.string))
+        |: ( Json.Decode.Extra.withDefault Util.Debug.init ("debug"  := Util.Debug.decode)  )
+--        |: ( Json.Decode.Extra.withDefault "" ("output"    := Json.Decode.string))
 ----------------------------------------------}
 
 
@@ -267,9 +287,9 @@ decodeJob =
 --encodeJob : (node -> Json.Encode.Value) -> String -> Model -> Json.Encode.Value
 --encodeJob encodeNode jobTypeName job =
 encodeJob : String -> Model -> Json.Encode.Value
-encodeJob jobTypeName job =
-    encodeJobX jobTypeName job [
-        ("root",      Widget.Data.Json.encodeNode job.node)
+encodeJob jobTypeName model =
+    encodeJobX jobTypeName model [
+        ("root",      Widget.Data.Json.encodeNode model.node)
     ]
 
 --    Json.Encode.object
@@ -284,15 +304,21 @@ encodeJob jobTypeName job =
 --        ]
 
 --encodeJobX : String -> Model -> Json.Encode.Value
-encodeJobX jobTypeName job addFields =
+encodeJobX
+    : String
+    -> Model  --  { a | id : String, name : String, node : Node }
+    -> List ( String, Json.Encode.Value )
+    -> Json.Encode.Value
+encodeJobX jobTypeName model addFields =
     Json.Encode.object (
 --        [ ("json_id",   Json.Encode.string job.jsonId)
 --        , ("yaml_id",   Json.Encode.string job.yamlId)
-        [ ("id",        Json.Encode.string job.id)
-        , ("job_name",  Json.Encode.string job.name)
+        [ ("job_id",    Json.Encode.string model.id)
+        , ("job_name",  Json.Encode.string model.name)
         , ("type_name", Json.Encode.string jobTypeName)
-        , ("cmd",       Json.Encode.string <| Widget.Gen.cmdOf job.node)
+        , ("cmd",       Json.Encode.string <| Widget.Gen.cmdOf model.node)
 --        , ("root",      encodeNode job.node)
 --        , ("root",      Widget.Data.Json.encodeNode job.node)
+        , ("debug",     Util.Debug.encode model.debug)
         ] ++ addFields
       )
