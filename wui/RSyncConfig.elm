@@ -111,6 +111,13 @@ init =
 --    ] (fmtList "{{}}" " ")
     ] (fmtList "rsync {{}} # ..." " ")
 
+fake : Node
+fake =
+    aVertical "all" "All RSync"
+    [
+    ] (fmtList "rsync {{}} # ..." " ")
+
+
 {--------------------------------------------------------------------------------------
 .        -v, --verbose               increase verbosity
             --info=FLAGS            fine-grained informational verbosity

@@ -25,16 +25,19 @@ import RSyncConfig       exposing (..)
 type alias Model =
   { id           : String
   , name         : String
+--  , node         : Maybe Node
   , node         : Node
   , debug        : Util.Debug.Model
   , output       : String
+--  , defaultRoot  : Node
   }
 
 init : ( Model, Cmd msg )
 init =
     let
 --        node = aBool "11" "22" "33" "44"
-        node = RSyncConfig.init
+--        node = RSyncConfig.init
+        node = aVertical "empty-job" "Empty Job" [] <| fmtList "<<EMPTY JOB -- DON'T USE>>" ", "
     in
         ( Model node.rec.id node.rec.label node Util.Debug.init ""
         , Cmd.none )
@@ -69,7 +72,15 @@ update msg model =
 
     WidgetMsg wm ->
         let
-            (node', wm') = Widget.update wm model.node
+            (node', wm') =
+                Widget.update wm model.node
+--                case model.node of
+--                    Nothing  -> ( model.node, Cmd.none )
+--                    Just nod ->
+--                        let
+--                            ( nod', wmsg2) = Widget.update wm nod
+--                        in
+--                            ( Just nod', wmsg2 )
         in
             { model
             | node = node'
@@ -161,7 +172,10 @@ newJobCall jobTypeName job =
 ----      initJob jobName model
 --      { job | node = 2 }
 --        |>
-      encodeJobX jobTypeName job []
+      encodeJobX jobTypeName job
+        [ ("default_root",      Widget.Data.Json.encodeNode RSyncConfig.init)
+--        [ ("default_root",      Widget.Data.Json.encodeNode RSyncConfig.fake)
+        ]
         |> Json.Encode.encode 2
   in
     Http.post decodeJob url (Http.string body_s)
@@ -235,17 +249,20 @@ decodeJob =
     Json.Decode.succeed Model
 --        |: ("json_id"   := Json.Decode.string)
 --        |: ("yaml_id"   := Json.Decode.string)
-        |: ("id"        := Json.Decode.string)
-        |: ("job_name"  := Json.Decode.string)
+        |: ("job_id"        := Json.Decode.string)
+        |: ( Json.Decode.Extra.withDefault "" ("job_name"  := Json.Decode.string) )
 --        |: ("type_name" := Json.Decode.string)
 --        |: ("cmd"       := Json.Decode.string)
 --        |: ("root"      := decodeNode)
         |: ("root"      := Widget.Data.Json.decodeNode)
 --        |: ("debug"     := Json.Decode.bool)
 --        |: ("output"    := Json.Decode.string)
-        |: Json.Decode.null Util.Debug.init            -- ("debug"     := Json.Decode.bool)
-        |: Json.Decode.null ""                         -- ("output"    := Json.Decode.string)
+        |: ( Json.Decode.Extra.withDefault Util.Debug.init (Util.Debug.decodeDebug )  )
+        |: ( Json.Decode.Extra.withDefault "" ("output"    := Json.Decode.string))
 ----------------------------------------------}
+
+
+
 
 --encodeJob : (node -> Json.Encode.Value) -> String -> Model -> Json.Encode.Value
 --encodeJob encodeNode jobTypeName job =

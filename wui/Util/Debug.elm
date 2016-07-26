@@ -19,6 +19,11 @@ import Html.Events -- exposing (..)
 import Html.Attributes -- exposing (..)
 --import String
 
+import Json.Decode       exposing ((:=))
+import Json.Decode.Extra exposing ((|:))
+
+
+
 -- MODEL
 
 type alias Model =
@@ -95,3 +100,7 @@ viewDbgOptStr model optErrStr =
       , dbgInfoHtml
       ]
 ------------------------------------------------------------------}
+
+decodeDebug =
+    Json.Decode.succeed Model
+        |: ("debug"    := Json.Decode.bool)
