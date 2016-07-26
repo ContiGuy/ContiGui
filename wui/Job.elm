@@ -26,11 +26,9 @@ import RSyncConfig       exposing (..)
 type alias Model =
   { id           : String
   , name         : String
---  , node         : Maybe Node
+  , typeName     : String
   , node         : Node
   , debug        : Util.Debug.Model
---  , output       : String
---  , defaultRoot  : Node
   }
 
 init : ( Model, Cmd msg )
@@ -40,7 +38,7 @@ init =
 --        node = RSyncConfig.init
         node = aVertical "empty-job" "Empty Job" [] <| fmtList "<<EMPTY JOB -- DON'T USE>>" ", "
     in
-        ( Model node.rec.id node.rec.label node Util.Debug.init --""
+        ( Model node.rec.id node.rec.label "Non Job Type" node Util.Debug.init --""
         , Cmd.none )
 
 
@@ -66,7 +64,6 @@ update msg model =
                     sljCmd = newJob jobTypeName model   -- newJobId
                     _ = Debug.log "Job.update:newJob" sljCmd
                 in
-        --            ( model, sljCmd )
                     model !
                     [ sljCmd
 --                    , Cmd.Extra.message <| DebugMsg <| Util.Debug.Change <|"Job.New [" ++ jobTypeName ++ "]"
@@ -84,14 +81,23 @@ update msg model =
                 in
                     { model
                     | node = node'
-                    } ! [ Cmd.map WidgetMsg wm' ]
+                    } !
+                    [ Cmd.map WidgetMsg wm'
+                    , Cmd.Extra.message <| Save "" ""
+                    ]
 
             Save jobTypeName newJobId ->
                 let
-                    sljCmd = saveLoadJob jobTypeName model newJobId
+                    jobType =
+                        if jobTypeName == "" then model.typeName
+                        else jobTypeName
+                    sljCmd = saveLoadJob jobType model newJobId
                     _ = Debug.log "Job.update:saveLoadJob" sljCmd
                 in
-                    ( model, sljCmd )
+--                    ( model, sljCmd )
+                    { model
+                    | typeName = jobType
+                    } ! [ sljCmd ]
 
             SaveSucceed newModel ->   -- Model ->
                 newModel ! []
@@ -126,7 +132,7 @@ update msg model =
         ( debug', dbgMsg' ) =
             let
                 modelStr = toString
-                    { id = model'.id, name = model'.name }
+                    { id = model'.id, name = model'.name, jtype = model'.typeName }
             in
                 Util.Debug.update (Util.Debug.Change modelStr) model'.debug
         _ = Debug.log "Job.update.debug" debug'
@@ -271,7 +277,7 @@ decodeJob =
 --        |: ("yaml_id"   := Json.Decode.string)
         |: ("job_id"        := Json.Decode.string)
         |: ( Json.Decode.Extra.withDefault "" ("job_name"  := Json.Decode.string) )
---        |: ("type_name" := Json.Decode.string)
+        |: ("type_name" := Json.Decode.string)
 --        |: ("cmd"       := Json.Decode.string)
 --        |: ("root"      := decodeNode)
         |: ("root"      := Widget.Data.Json.decodeNode)

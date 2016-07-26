@@ -64,23 +64,10 @@ update msg model =
         ( model', msg' ) =
           case msg of
             NewJob ->
-        --            { model
-        --            | action = "NewJob"
-        ----            } ! [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.Save model.name "" ]
-        --            } !
-                    model !
-                    [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.New model.name
-                    , Cmd.Extra.message <| DebugMsg <| Util.Debug.Change <| "JobType.NewJob [" ++ model.name ++ "]"
-                    ]
-        ----      { model
-        ----      | name = "newName"
-        ----      } ! []
-        --        let
-        --            ( job', jobMsg ) = Job.update (Job.Save) model.job
-        --        in
-        --            { model
-        --            | job = job'
-        --            } ! [ Cmd.map JobMsg jobMsg ]
+                model !
+                [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.New model.name
+--                , Cmd.Extra.message <| DebugMsg <| Util.Debug.Change <| "JobType.NewJob [" ++ model.name ++ "]"
+                ]
 
             Rename newName ->
               { model
@@ -122,20 +109,6 @@ update msg model =
         , Cmd.map DebugMsg dbgMsg'
         ]
       {--------------------------------------------------------------
-        ( debug', dbgMsg' ) =
-            let
-                modelStr = toString
-                    { id = model'.id, name = model'.name }
-            in
-                Util.Debug.update (Util.Debug.Change modelStr) model'.debug
-        _ = Debug.log "Job.update.debug" debug'
-    in
-        { model'
-        | debug = debug'
-        } !
-        [ cmdMsg
-        , Cmd.map DebugMsg dbgMsg'
-        ]
       --------------------------------------------------------------}
 
 updateCombo : ComboBox.Msg -> Model -> (Model, Cmd Msg)
