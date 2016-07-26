@@ -41,6 +41,12 @@ init =
         ( Model node.rec.id node.rec.label "Non Job Type" node Util.Debug.init --""
         , Cmd.none )
 
+defaultRootNode : Node
+defaultRootNode =
+--    RSyncConfig.init
+    RSyncConfig.fake
+
+
 
 -- UPDATE
 
@@ -62,7 +68,7 @@ update msg model =
             New jobTypeName ->
                 let
                     sljCmd = newJob jobTypeName model   -- newJobId
-                    _ = Debug.log "Job.update:newJob" sljCmd
+--                    _ = Debug.log "Job.update:newJob" sljCmd
                 in
                     model !
                     [ sljCmd
@@ -135,7 +141,7 @@ update msg model =
                     { id = model'.id, name = model'.name, jtype = model'.typeName }
             in
                 Util.Debug.update (Util.Debug.Change modelStr) model'.debug
-        _ = Debug.log "Job.update.debug" debug'
+--        _ = Debug.log "Job.update.debug" debug'
     in
         { model'
         | debug = debug'
@@ -193,8 +199,9 @@ newJobCall jobTypeName model =
 --        ++ "/" ++ job.id
     body_s =
       encodeJobX jobTypeName model
-        [ ("default_root",      Widget.Data.Json.encodeNode RSyncConfig.init)
---        [ ("default_root",      Widget.Data.Json.encodeNode RSyncConfig.fake)
+--        [ ("default_root",      Widget.Data.Json.encodeNode RSyncConfig.init)
+----        [ ("default_root",      Widget.Data.Json.encodeNode RSyncConfig.fake)
+        [ ("default_root",      Widget.Data.Json.encodeNode defaultRootNode)
         ]
         |> Json.Encode.encode 2
   in

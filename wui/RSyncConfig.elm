@@ -112,9 +112,14 @@ init =
     ] (fmtList "rsync {{}} # ..." " ")
 
 fake : Node
+--fake =
+--    aVertical "all" "All RSync"
+--    [
+--    ] (fmtList "rsync {{}} # ..." " ")
 fake =
     aVertical "all" "All RSync"
     [
+        aBool "b1" "Sunshine" "the sun is shining" "--sunny"
     ] (fmtList "rsync {{}} # ..." " ")
 
 

@@ -31,8 +31,6 @@ type alias Model =
   , jobIdNames   : List (String, String)
   , combo        : ComboBox.Model
   , debug        : Util.Debug.Model
---  , action       : String
---  , allJobs      : Dict.Dict String Job.Model
   }
 
 init : ( Model, Cmd msg )
@@ -52,8 +50,8 @@ init =
 -- UPDATE
 
 type Msg
-  = Rename String
-  | NewJob
+  = NewJob
+  | Rename String
   | JobMsg Job.Msg
   | ComboMsg ComboBox.Msg
   | DebugMsg Util.Debug.Msg
@@ -64,9 +62,14 @@ update msg model =
         ( model', msg' ) =
           case msg of
             NewJob ->
+--              let
+--                newOptions =
+--                    [""] ++ List.map (\ (id, n) -> n) model.jobIdNames
+--              in
                 model !
                 [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.New model.name
---                , Cmd.Extra.message <| DebugMsg <| Util.Debug.Change <| "JobType.NewJob [" ++ model.name ++ "]"
+----                , Cmd.Extra.message <| DebugMsg <| Util.Debug.Change <| "JobType.NewJob [" ++ model.name ++ "]"
+--                , Cmd.Extra.message <| ComboMsg <| ComboBox.NewOptions newOptions
                 ]
 
             Rename newName ->
@@ -85,11 +88,43 @@ update msg model =
             JobMsg jmsg ->
               let
                 _ = Debug.log "JobType.update:JobMsg" jmsg
-                ( jmdl, jmsg' ) = Job.update jmsg model.job
+                ( job', jmsg' ) = Job.update jmsg model.job
+
+                otherJobIdNames =
+--                    List.filter (\ (id,n) -> n /= job'.name) model.jobIdNames
+                    List.filter (\ (id,n) -> id /= job'.id) model.jobIdNames
+                jobNames = List.map (\ (id, n) -> n) otherJobIdNames
+--                newOptions =
+--                    case jmsg of
+--                        Job.SaveSucceed newJob ->
+--                            [newJob.name] ++
+--                                List.filter (\ n -> n /= newJob.name) jobNames
+--                        _ ->
+--                            jobNames
+                ( newOptionsMsgs, newJobIdNames, job'' ) =
+                    case jmsg of
+                        Job.SaveSucceed _ ->   -- newJob ->
+                            ( [ Cmd.Extra.message
+                                <| ComboMsg
+                                <| ComboBox.NewOptions
+--                                <| ( [newJob.name] ++
+                                <| ( [job'.name] ++
+--                                     List.filter (\ n -> n /= newJob.name) jobNames )
+--                                     List.filter (\ n -> n /= job'.name)
+                                     jobNames )
+                            ]
+                            , (job'.id, job'.name) :: otherJobIdNames  -- model.jobIdNames
+                            , job' )
+                        _ ->
+                            ( [], model.jobIdNames, job' )
               in
                 { model
-                | job = jmdl
-                } ! [ Cmd.map JobMsg jmsg' ]
+                | job = job''
+                , jobIdNames = newJobIdNames
+                } !
+                ( [ Cmd.map JobMsg jmsg'
+--                , Cmd.Extra.message <| ComboMsg <| ComboBox.NewOptions newOptions
+                ] ++ newOptionsMsgs )
 
             ComboMsg cbmsg ->
               updateCombo cbmsg model
@@ -97,10 +132,10 @@ update msg model =
         ( debug', dbgMsg' ) =
             let
                 modelStr = toString
-                    { id = model'.id, name = model'.name }
+                    { id = model'.id, name = model'.name, jobs = model'.jobIdNames }
             in
                 Util.Debug.update (Util.Debug.Change modelStr) model'.debug
-        _ = Debug.log "JobType.update.debug" debug'
+--        _ = Debug.log "JobType.update.debug" debug'
     in
         { model'
         | debug = debug'
@@ -119,48 +154,60 @@ updateCombo cbmsg model =
         ( cbb, cbmsg' ) = ComboBox.update cbmsg model.combo
         msg1 = Cmd.map ComboMsg ( -- Debug.log "combo"
                                  cbmsg' )
-        (action', nJob, msg2) =
+        (  -- action',
+          nJob, msg2) =
           (
           case cbmsg of
             ComboBox.UpdateField s ->
-              let
---                _ = Debug.log "JobType.updateCombo:ComboBox.UpdateField" s
-                (job', jmsg) = Job.update (Job.Rename s) model.job
-                newJobName = "new job " ++ (toString job'.id) ++ ": " ++ (toString job'.name)
-                _ = Debug.log "JobType.updateCombo:ComboBox.UpdateField" newJobName
-              in
---                ( "save old job " ++ (toString model.job.id) ++ ": " ++ (toString model.job.name) ++ " to " ++ (toString job'.id) ++ ": " ++ (toString job'.name)
-                ( "save " ++ oldJobName ++ " to " ++ newJobName
-                , job'
+--              let
+----                _ = Debug.log "JobType.updateCombo:ComboBox.UpdateField" s
+----                (job', jmsg) = Job.update (Job.Rename s) model.job
+--                newJobName = "new job " ++ (toString job'.id) ++ ": " ++ (toString job'.name)
+--                _ = Debug.log "JobType.updateCombo:ComboBox.UpdateField" newJobName
+--              in
+                ( -- "save " ++ oldJobName ++ " to " ++ newJobName,
+--                 job'
+                 model.job
 --                , Cmd.map JobMsg jmsg )
-                , Cmd.map JobMsg <| Cmd.batch [
-                    jmsg
-                  , Cmd.Extra.message (Job.Save model.name model.job.id) ]
+                , Cmd.map JobMsg <| Cmd.batch
+                    [ --jmsg
+--                    , Cmd.Extra.message (Job.Save model.name model.job.id)
+--                    ,
+                      Cmd.Extra.message (Job.Rename s)
+                    ]
                 )
             ComboBox.Select s ->
               let
-                newJobName = "new job " ++ (  -- toString
-                    model.combo.current) ++ ": " ++ (  -- toString
-                    s)
+--                newJobName = "new job " ++ (  -- toString
+--                    model.combo.current) ++ ": " ++ (  -- toString
+--                    s)
 --                _ = Debug.log "JobType.updateCombo:ComboBox.Select" s
                 newJobId = findJobId s model
-                (newJob, jmsg) =
-                  Job.update (Job.Save model.name newJobId) model.job      -- <| findJobId s model
-                _ = Debug.log "JobType.updateCombo:ComboBox.Select" newJobName
+--                (newJob, jmsg) =
+--                  Job.update (Job.Save model.name newJobId) model.job      -- <| findJobId s model
+                _ = Debug.log "JobType.updateCombo:ComboBox.Select" (model.combo.current ++ " (" ++ model.job.id ++ ")" ++ " -->> " ++ s ++ " (" ++ newJobId ++ ")")
               in
---                ( "save job " ++ (toString model.job)
---                ++ " and load job " ++ (toString newJob)
-                ( "save " ++ oldJobName ++ " and load " ++ newJobName
-                , newJob
-                , Cmd.map JobMsg jmsg )
-            ComboBox.NewOptions sl ->
-                ( ("combo NewOptions " ++ (toString sl))
-                , model.job
-                , Cmd.none )
+                ( -- "save " ++ oldJobName ++ " and load " ++ newJobName,
+--                  newJob
+--                  job'
+                  model.job
+--                , Cmd.map JobMsg jmsg )
+
+                , Cmd.map JobMsg <| Cmd.batch
+                    [ --jmsg
+--                    ,
+                      Cmd.Extra.message (Job.Save model.name newJobId)   -- model.job.id)
+                    ]
+                 )
+
+--            ComboBox.NewOptions sl ->
+--                ( -- ("combo NewOptions " ++ (toString sl)),
+--                  model.job
+--                , Cmd.none )
             _ ->
-                ( ("combo other " ++ (toString cbmsg))
-                , model.job
-                , Cmd.none )
+                ( -- ("combo other " ++ (toString cbmsg)),
+                  model.job
+                , Debug.log ("combo other " ++ (toString cbmsg)) Cmd.none )
           )
       in
         { model
@@ -170,7 +217,7 @@ updateCombo cbmsg model =
         } !
         [ msg1
         , msg2
-        , Cmd.Extra.message <| DebugMsg <| Util.Debug.Change action'
+--        , Cmd.Extra.message <| DebugMsg <| Util.Debug.Change action'
         ]
 
 

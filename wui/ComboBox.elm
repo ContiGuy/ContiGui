@@ -39,7 +39,7 @@ main =
 
 type alias Model =
     { current    : String
-    , editField  : String
+--    , editField  : String
     --, entries    : Dict.Dict String String
     , entries    : List String
     , debug      : Bool
@@ -52,7 +52,8 @@ init : List String -> Model
 init entries =
   --Model "" "default" (Dict.fromList [("","")]) False
   --Model "" "default" ["", "aa", "bb"] False
-  Model "" "" entries False
+--  Model "" "" entries False
+  Model "" entries False
 
 testInit : Model
 testInit =
@@ -70,8 +71,9 @@ testInit =
 
 type Msg
   = UpdateField String
+  | NoOp
   | Select String
-  | Success String
+--  | Success String
   | ToggleDebug Bool
   --| NewOptions ( List (String, String) )
   | NewOptions ( List String )
@@ -81,18 +83,25 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
+    NoOp ->
+        model ! []
+
     UpdateField str ->
-      { model | editField = str, current = "" } ! []
+      { model
+--      | editField = str
+      | current = str
+--      , current = ""
+      } ! []
 
     Select str ->
       --updateWith False str model
       { model
       | current = str
-      , editField = str
+--      , editField = str
       } ! []
 
-    Success str ->
-      updateWith True str model
+--    Success str ->
+--      updateWith True str model
 
     ToggleDebug dbg ->
       { model | debug = dbg } ! []
@@ -100,40 +109,51 @@ update msg model =
     -- NewOptions ( List String )
     NewOptions newOpts ->
       let
-        ( newField, newEntries ) =
+--        ( newField, newEntries ) =
+        model' =
           case ( List.head newOpts ) of
             Just firstEntry ->
-              ( firstEntry, newOpts )
+--              ( firstEntry, newOpts )
+
+                { model
+                --| entries = Dict.fromList newEntries
+                | entries = newOpts
+                , current = firstEntry
+--                , editField = firstEntry
+                }
+
             Nothing ->
-              ( "", [] )
+--              ( "", [] )
+              model
       in
-        { model
-        --| entries = Dict.fromList newEntries
-        | entries = newEntries
-        , current = newField
-        , editField = ""
-        } ! []
+        model' ! []
+--        { model
+--        --| entries = Dict.fromList newEntries
+--        | entries = newEntries
+--        , current = newField
+--        , editField = ""
+--        } ! []
 
 
-updateWith : Bool -> String -> Model -> ( Model, Cmd Msg )
-updateWith updateEntries str model =
-      let
-        m =
-          if updateEntries then "Success" else "Select"
-        s =
-          if model.debug then Debug.log ( "CB." ++ m ) str
-          else str
-        nEntries =
-          if updateEntries then
-            str :: List.filter (\ e -> e /= s ) model.entries
-          else
-            model.entries
-      in
-        { model
-        | current = str
-        , editField = ""
-        , entries = nEntries
-        } ! []
+--updateWith : Bool -> String -> Model -> ( Model, Cmd Msg )
+--updateWith updateEntries str model =
+--      let
+--        m =
+--          if updateEntries then "Success" else "Select"
+--        s =
+--          if model.debug then Debug.log ( "CB." ++ m ) str
+--          else str
+--        nEntries =
+--          if updateEntries then
+--            str :: List.filter (\ e -> e /= s ) model.entries
+--          else
+--            model.entries
+--      in
+--        { model
+--        | current = str
+--        , editField = ""
+--        , entries = nEntries
+--        } ! []
 
 
 -- VIEW
@@ -171,24 +191,31 @@ viewX labels neutralEntry selectMsg model =
             neutralEntry
           else
             s
-        txt1 s =
-          txt (
-              if s == model.current then
-                "[ " ++ s ++ " ]"
-              else
-                s
-              )
-        selection0 s =
-            [ Html.Events.onClick (selectMsg s) ] ++ [
-            {--------------------------------------}
-                if s == model.current then
-                  Html.Attributes.style [ ("backgoundColor", "blue") ]
-                else
-                  Html.Attributes.style []
-            --------------------------------------}
-            ]
+--        txt1 s =
+--          txt (
+--              if s == model.current then
+--                "[ " ++ s ++ " ]"
+--              else
+--                s
+--              )
+
+--        selection0 s =
+--            [ Html.Events.onClick (selectMsg s) ] ++ [
+--            {--------------------------------------}
+--                if s == model.current then
+--                  Html.Attributes.style [ ("backgoundColor", "blue") ]
+--                else
+--                  Html.Attributes.style []
+--            --------------------------------------}
+--            ]
+
+        selectMsg' s =
+            if s == model.current then NoOp
+--            if s == model.editField then NoOp
+            else selectMsg s
+
         selectionStyle s =
-            --[ Html.Events.onClick (selectMsg s) ] ++
+            [ Html.Events.onClick (selectMsg' s) ] ++
             [
             {--------------------------------------}
                 if s == model.current then
@@ -215,11 +242,12 @@ viewX labels neutralEntry selectMsg model =
                     [ Html.td [ Html.Attributes.style [ ("width", "100%") ] ]
                       [ Html.button
                         --( selection0 lbl )
-                        [ Html.Attributes.style
-                          [ ("width", "100%")
-                          , ("background-color", "#bbbbbb")
-                          ]
-                        ]
+--                        [ Html.Attributes.style
+--                          [ ("width", "100%")
+--                          , ("background-color", "#bbbbbb")
+--                          ]
+--                        ]
+                        ( selectionStyle lbl )
                         [ --Html.label (selectionStyle lbl) [
                           Html.text (txt lbl)
                         ] --]
@@ -239,28 +267,28 @@ viewX labels neutralEntry selectMsg model =
         ]
       ]
 
-{-------------------------------------------------------------------}
-viewOption0 : String -> (String -> msg) -> Model -> Html.Html msg
-viewOption0 neutralEntry selectMsg model =
-  let
-    txt s =
-      if s == "" then
-        neutralEntry
-      else
-        s
-    optAttrs s =
-      ( Html.Attributes.selected ( s == model.current ) ) :: (
-        if s == model.current then
-          []
-        else
-          [ Html.Events.onClick (selectMsg s) ]
-      )
-    opt s =
-      Html.option ( optAttrs s ) [ Html.text (txt s) ]
-  in
-    Html.select []
-        ( List.map opt model.entries )
--------------------------------------------------------------------}
+--{-------------------------------------------------------------------}
+--viewOption0 : String -> (String -> msg) -> Model -> Html.Html msg
+--viewOption0 neutralEntry selectMsg model =
+--  let
+--    txt s =
+--      if s == "" then
+--        neutralEntry
+--      else
+--        s
+--    optAttrs s =
+--      ( Html.Attributes.selected ( s == model.current ) ) :: (
+--        if s == model.current then
+--          []
+--        else
+--          [ Html.Events.onClick (selectMsg s) ]
+--      )
+--    opt s =
+--      Html.option ( optAttrs s ) [ Html.text (txt s) ]
+--  in
+--    Html.select []
+--        ( List.map opt model.entries )
+---------------------------------------------------------------------}
 
 
 
@@ -295,29 +323,29 @@ viewOption0 neutralEntry selectMsg model =
 </div>
 ------------------------------------------------------------------}
 
-isEmptyString : String -> Bool
-isEmptyString s =
-  String.isEmpty ( String.trim s )
+--isEmptyString : String -> Bool
+--isEmptyString s =
+--  String.isEmpty ( String.trim s )
 
-viewButton : (String -> Html.Html msg) -> (String -> msg) -> Model -> Html.Html msg
-viewButton labeller actionMsg model =
-  let
-      currentIsEmpty    = isEmptyString model.current
-      editFieldIsEmpty = isEmptyString model.editField
-
-{-------------------------------------------------------------------
--------------------------------------------------------------------}
-      isBlocked =
-        currentIsEmpty && editFieldIsEmpty
-      actionStr =
-        if currentIsEmpty then
-          String.trim model.editField
-        else
-          String.trim model.current
-  in
-      Html.button [ Html.Events.onClick ( actionMsg actionStr )
-             , Html.Attributes.disabled isBlocked
-             ] [ labeller actionStr ]
+--viewButton : (String -> Html.Html msg) -> (String -> msg) -> Model -> Html.Html msg
+--viewButton labeller actionMsg model =
+--  let
+--      currentIsEmpty   = isEmptyString model.current
+--      editFieldIsEmpty = isEmptyString model.editField
+--
+--{-------------------------------------------------------------------
+---------------------------------------------------------------------}
+--      isBlocked =
+--        currentIsEmpty && editFieldIsEmpty
+--      actionStr =
+--        if currentIsEmpty then
+--          String.trim model.editField
+--        else
+--          String.trim model.current
+--  in
+--      Html.button [ Html.Events.onClick ( actionMsg actionStr )
+--             , Html.Attributes.disabled isBlocked
+--             ] [ labeller actionStr ]
 
 
 viewField : Model -> Html.Html Msg
@@ -329,7 +357,8 @@ viewField model =
 -------------------------------------------------------------------}
     Html.input [
       Html.Attributes.type' "text"
-    , Html.Attributes.value model.editField
+--    , Html.Attributes.value model.editField
+    , Html.Attributes.value model.current
     , Html.Events.onInput UpdateField
     --, disabled ( not currentIsEmpty )
     , Html.Attributes.autofocus True
@@ -421,7 +450,7 @@ dropDownUnselectedRule :
 dropDownUnselectedRule =
     { selectors = [Css.Class DropDownUnselected]
     , descriptor = [
-        ("background-color", "#f0f0f0")
+--        ("background-color", "#f0f0f0")
       --, ("display", "inline-block")
       ]
     }
@@ -432,7 +461,7 @@ dropDownSelectedRule :
 dropDownSelectedRule =
     { selectors = [Css.Class DropDownSelected]
     , descriptor = [
-        ("background-color", "#404040")
+--        ("background-color", "#404040")
       --, ("display", "inline-block")
       ]
     }

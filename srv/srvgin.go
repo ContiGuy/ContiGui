@@ -268,6 +268,7 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 		jobTypeName = c.Param("jobType")
 		newJobId    = c.Query("newJobId")
 	)
+	log.Info("job post", "type", jobTypeName, "new-id", newJobId)
 	if newJobId != "" {
 		return errors.New("POST does not allow to ask for new job id: " + newJobId)
 	}
@@ -312,7 +313,7 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 				"job.defaultNodes", len(job.DefaultNodes))
 		}
 		job.Id = xid.New().String()
-		job.Name = ""
+		//		job.Name = ""
 
 		//		log.Trace("contructed default job", "job", job)
 	}
@@ -320,22 +321,16 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 	eh.safe(func() {
 		eh.err = job.Check(jobTypeName, "")
 		eh.ifErr(func() {
-			//			body_s := string(body_b)
 			if len(body_s) > 200 {
 				body_s = body_s[:200]
 			}
 			log.Warn("Job.Check failed", "body", body_s)
 		})
-		//		fmt.Printf("got '%s': '''%s''' from %#v\n", cmd_s, cmdRes, node)
-		//			fmt.Printf("got '%s': %#v: %v\n", cmd_s, job, eh.err)
-		//		fmt.Printf("got '%s': err=%v\n", cmd_s, eh.err)
 	})
 
 	job.storeYamlScript(eh, baseDir)
 
-	eh.safe(func() {
-		c.JSON(http.StatusCreated, job)
-	})
+	eh.safe(func() { c.JSON(http.StatusCreated, job) })
 
 	eh.ifErr(func() { c.AbortWithError(http.StatusBadRequest, eh.err) })
 	return eh.err
@@ -352,6 +347,7 @@ func (eh *errHandler_T) handleJobPut(baseDir string, c *gin.Context) error {
 		jobId       = c.Param("jobId")
 		newJobId    = c.Query("newJobId")
 	)
+	log.Info("job put", "type", jobTypeName, "id", jobId, "new-id", newJobId)
 
 	job, body_s := readJsonJob(eh, c.Request.Body)
 	eh.safe(func() {
@@ -388,49 +384,14 @@ func (eh *errHandler_T) handleJobPut(baseDir string, c *gin.Context) error {
 		default:
 			// try to find job with that id and load and return it
 
-			xJob := Job{}
-			//			if job != nil {
-			xJob = *job
-			//			}
-
-			// load default job
-			//			xJob.TypeName = jobTypeName
-			//		job.Name = "default"
+			xJob := *job
 			xJob.Id = newJobId
-
 			newJob := xJob.loadYamlScript(eh, baseDir)
-
-			//	Job struct {
-			//		TypeName     string `json:"type_name,omitempty"`
-			//		Id           string `json:"job_id,omitempty"`
-			//		Name         string `json:"job_name,omitempty"`
-			//		JsonSha1     string `json:"json_id,omitempty"`
-			//		YamlSha1     string `json:"yaml_id,omitempty"`
-			//		Cmd          string `json:"cmd,omitempty"`
-			//		Nodes        []Wrap `json:"root"`                   //--`json:"name"`
-			//		DefaultNodes []Wrap `json:"default_root,omitempty"` //--`json:"name"`
-			//	}
-
 			if newJob != nil {
 				c.JSON(http.StatusAccepted, newJob)
-				//				job = newJob
-
-				//				//			log.Trace("contructed default job", "job", job)
-				//				log.Info("job nodes to uploaded default root",
-				//					"job.nodes", len(job.Nodes),
-				//					"job.defaultNodes", len(job.DefaultNodes))
-				//			} else {
-				//				job = defaultJob
-				//				log.Info("job set to loaded default job",
-				//					"job.nodes", len(job.Nodes),
-				//					"job.defaultNodes", len(job.DefaultNodes))
 			} else {
-				c.JSON(http.StatusNoContent, job)
+				c.JSON(http.StatusResetContent, job)
 			}
-			//			job.Id = xid.New().String()
-			//			job.Name = ""
-
-			//		log.Trace("contructed default job", "job", job)
 		}
 	})
 
