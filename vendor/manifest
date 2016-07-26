@@ -183,6 +183,14 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/rs/xid",
+			"repository": "https://github.com/rs/xid",
+			"vcs": "git",
+			"revision": "057f3c928c207d1e7e318929eeac93bb46e319e3",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/russross/blackfriday",
 			"repository": "https://github.com/russross/blackfriday",
 			"vcs": "git",
