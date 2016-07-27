@@ -99,20 +99,33 @@ func (eh *errHandler_T) ifErr(handle func()) bool {
 	return eh.err != nil
 }
 
-func (job *Job) Check(jobTypeName string, jobId string) error {
-	if jobTypeName != "" && strings.TrimSpace(jobTypeName) != strings.TrimSpace(job.TypeName) {
-		msg := fmt.Sprintf("WRONG job Type: '%s': expected '%s'", job.TypeName, jobTypeName)
+func (job *Job) Check(jobTypeExpected string, jobIdExpected string) error {
+	//	if jobTypeName != "" && strings.TrimSpace(jobTypeName) != strings.TrimSpace(job.TypeName) {
+	jobTypeExpectedNorm := strings.TrimSpace(jobTypeExpected)
+	jobTypeNorm := strings.TrimSpace(job.TypeName)
+	if jobTypeNorm == "" || (jobTypeExpectedNorm != "" && jobTypeNorm != jobTypeExpectedNorm) {
+		msg := fmt.Sprintf("WRONG job Type: '%s': expected '%s'",
+			job.TypeName, jobTypeExpected)
 		return errors.New(msg)
 	}
-	if jobId != "" && strings.TrimSpace(job.Id) != jobId {
+
+	jobIdExpectedNorm := strings.TrimSpace(jobIdExpected)
+	jobIdNorm := strings.TrimSpace(job.Id)
+	if jobIdNorm == "" || (jobIdExpectedNorm != "" && jobIdNorm != jobIdExpectedNorm) {
 		//		msg := fmt.Sprintf("MISSING job Id: %#v", *job)
-		msg := fmt.Sprintf("WRONG job Id: '%s': expected '%s'", job.Id, jobId)
+		msg := fmt.Sprintf("WRONG job Id: '%s': expected '%s'",
+			job.Id, jobIdExpected)
 		return errors.New(msg)
 	}
 	//	if strings.TrimSpace(job.Name) == "" {
 	//		msg := fmt.Sprintf("MISSING job Name: %#v", *job)
 	//		return errors.New(msg)
 	//	}
+	if len(job.Nodes) == 0 {
+		msg := fmt.Sprintf("EMPTY job: contains no Nodes: type='%s', id='%s'",
+			job.TypeName, job.Id)
+		return errors.New(msg)
+	}
 	return nil
 }
 
@@ -260,9 +273,13 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 	return eh.err
 }
 
-// (ALWAYS) create an id for a (new) job and save it to disk and return it.
-// if it does not have any node attached to it, return a default job for that job type.
-// cannot ask for another job with any id.
+//-- (ALWAYS) create an id for a (new) job and save it to disk and return it.
+//-- if it does not have any node attached to it, return a default job for that job type.
+//-- cannot ask for another job with any id.
+
+// this call performs 2 tasks:
+// 1. if the request body contains a valid job (with an id) the job will be stored on disk [optional]
+// 2. (then) it creates a new default job with a new unique id and a unique name and returns it [always]
 func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 	var (
 		jobTypeName = c.Param("jobType")
@@ -273,64 +290,93 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 		return errors.New("POST does not allow to ask for new job id: " + newJobId)
 	}
 
-	job, body_s := readJsonJob(eh, c.Request.Body)
+	job, _ /*body_s*/ := readJsonJob(eh, c.Request.Body)
 
-	if job == nil || len(job.Nodes) == 0 {
-		xJob := Job{}
-		if job != nil {
-			xJob = *job
-		}
+	//	if job != nil && job.Check(jobTypeName, "") == nil {
+	//		job.storeYamlScript(eh, baseDir)
+	//	} else {
+	//		log.Info("posted job invalid - not stored", "job", job)
+	//	}
 
-		// load default job
-		xJob.TypeName = jobTypeName
-		//		job.Name = "default"
-		xJob.Id = "default"
-
-		defaultJob := xJob.loadYamlScript(eh, baseDir)
-
-		//	Job struct {
-		//		TypeName     string `json:"type_name,omitempty"`
-		//		Id           string `json:"job_id,omitempty"`
-		//		Name         string `json:"job_name,omitempty"`
-		//		JsonSha1     string `json:"json_id,omitempty"`
-		//		YamlSha1     string `json:"yaml_id,omitempty"`
-		//		Cmd          string `json:"cmd,omitempty"`
-		//		Nodes        []Wrap `json:"root"`                   //--`json:"name"`
-		//		DefaultNodes []Wrap `json:"default_root,omitempty"` //--`json:"name"`
-		//	}
-
-		if defaultJob == nil {
-			job.Nodes = job.DefaultNodes
-			job.DefaultNodes = nil
-			//			log.Trace("contructed default job", "job", job)
-			log.Info("job nodes to uploaded default root",
-				"job.nodes", len(job.Nodes),
-				"job.defaultNodes", len(job.DefaultNodes))
+	if job == nil {
+		log.Info("posted job EMPTY - not stored")
+	} else {
+		err := job.Check(jobTypeName, "")
+		if err == nil {
+			job.storeYamlScript(eh, baseDir)
 		} else {
-			job = defaultJob
-			log.Info("job set to loaded default job",
-				"job.nodes", len(job.Nodes),
-				"job.defaultNodes", len(job.DefaultNodes))
+			log.Info("posted job invalid - not stored",
+				"id", job.Id, "type", job.TypeName, "name", job.Name,
+				"nodes", len(job.Nodes), "err", err.Error())
 		}
-		job.Id = xid.New().String()
-		//		job.Name = ""
-
-		//		log.Trace("contructed default job", "job", job)
 	}
 
+	//	if job == nil || len(job.Nodes) == 0 {
+	//		xJob := Job{}
+	//		if job != nil {
+	//			xJob = *job
+	//		}
+
+	//		// load default job
+	//		xJob.TypeName = jobTypeName
+	//		//		job.Name = "default"
+	//		xJob.Id = "default"
+
+	newJob := Job{
+		TypeName: jobTypeName,
+		Id:       "default",
+	}
+	defaultJob := newJob.loadYamlScript(eh, baseDir)
+
+	//	Job struct {
+	//		TypeName     string `json:"type_name,omitempty"`
+	//		Id           string `json:"job_id,omitempty"`
+	//		Name         string `json:"job_name,omitempty"`
+	//		JsonSha1     string `json:"json_id,omitempty"`
+	//		YamlSha1     string `json:"yaml_id,omitempty"`
+	//		Cmd          string `json:"cmd,omitempty"`
+	//		Nodes        []Wrap `json:"root"`                   //--`json:"name"`
+	//		DefaultNodes []Wrap `json:"default_root,omitempty"` //--`json:"name"`
+	//	}
+
+	if defaultJob == nil {
+		newJob.Nodes = job.DefaultNodes
+		//			job.DefaultNodes = nil
+		//			log.Trace("contructed default job", "job", job)
+		log.Info("using hardcoded default job",
+			"job.nodes", len(newJob.Nodes),
+			"job.defaultNodes", len(newJob.DefaultNodes))
+	} else {
+		newJob = *defaultJob
+		log.Info("using loaded default job",
+			"job.nodes", len(newJob.Nodes),
+			"job.defaultNodes", len(newJob.DefaultNodes))
+	}
+	newJob.Id = xid.New().String()
+	idLen4 := len(newJob.Id) - 4
+	idTail := newJob.Id[idLen4:]
+
+	if newJob.Name == "" {
+		newJob.Name = "new"
+	}
+	newJob.Name += "-" + idTail
+
+	log.Trace("constructed new job", "job", newJob)
+	//	}
+
 	eh.safe(func() {
-		eh.err = job.Check(jobTypeName, "")
-		eh.ifErr(func() {
-			if len(body_s) > 200 {
-				body_s = body_s[:200]
-			}
-			log.Warn("Job.Check failed", "body", body_s)
-		})
+		eh.err = newJob.Check(jobTypeName, "")
+		//		eh.ifErr(func() {
+		//			if len(body_s) > 200 {
+		//				body_s = body_s[:200]
+		//			}
+		//			log.Warn("Job.Check failed", "body", body_s)
+		//		})
 	})
 
-	job.storeYamlScript(eh, baseDir)
+	newJob.storeYamlScript(eh, baseDir)
 
-	eh.safe(func() { c.JSON(http.StatusCreated, job) })
+	eh.safe(func() { c.JSON(http.StatusCreated, newJob) })
 
 	eh.ifErr(func() { c.AbortWithError(http.StatusBadRequest, eh.err) })
 	return eh.err
@@ -798,23 +844,35 @@ func /*(job *Job)*/ jobFromScript(eh *errHandler_T, job_b []byte, unmarshal func
 //	return newJob
 //}
 
-func (job *Job) storeYamlScript(eh *errHandler_T, baseDir string) /*[]byte*/ {
+func (job *Job) storeYamlScript(eh *errHandler_T, baseDir string) {
 	var job_yb, jobScript_b []byte
 	eh.safe(
-		//		func() { eh.err = job.Check("", "") },
 		func() { job_yb, eh.err = yaml.Marshal(job) },
 		func() {
+			var (
+				lbl string
+				val interface{}
+			)
+
 			if len(job_yb) < 500 {
-				log.Info("Marshal job to YAML", "jobType", job.TypeName, "job", string(job_yb), "nodes", len(job.Nodes))
+				lbl = "job.yaml"
+				val = string(job_yb)
 			} else {
-				log.Info("Marshal job to YAML", "jobType", job.TypeName, "size", len(job_yb), "nodes", len(job.Nodes))
+				lbl = "size"
+				val = len(job_yb)
 			}
+			log.Info("Store job to YAML script",
+				"type", job.TypeName,
+				"id", job.Id,
+				"name", job.Name,
+				"nodes", len(job.Nodes),
+				"default-nodes", len(job.DefaultNodes),
+				lbl, val)
 			jobScript_b = job.toScript(job_yb)
 			jobFPath := job.getFPath(baseDir, "")
 			eh.err = ioutil.WriteFile(jobFPath, jobScript_b, 0777)
 		},
 	)
-	//	return jobScript_b
 }
 
 func (job *Job) getFPath(baseDir string, cs string) string {

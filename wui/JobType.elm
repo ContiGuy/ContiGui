@@ -62,15 +62,7 @@ update msg model =
         ( model', msg' ) =
           case msg of
             NewJob ->
---              let
---                newOptions =
---                    [""] ++ List.map (\ (id, n) -> n) model.jobIdNames
---              in
-                model !
-                [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.New model.name
-----                , Cmd.Extra.message <| DebugMsg <| Util.Debug.Change <| "JobType.NewJob [" ++ model.name ++ "]"
---                , Cmd.Extra.message <| ComboMsg <| ComboBox.NewOptions newOptions
-                ]
+                model ! [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.New model.name ]
 
             Rename newName ->
               { model
@@ -87,44 +79,81 @@ update msg model =
 
             JobMsg jmsg ->
               let
-                _ = Debug.log "JobType.update:JobMsg" jmsg
+--                _ = Debug.log ("JobType.update:JobMsg " ++ (toString model.jobIdNames)) jmsg
+                _ = Debug.log ("JobType.update:JobMsg") jmsg
                 ( job', jmsg' ) = Job.update jmsg model.job
 
+                otherId (id, n) =
+--                    id /= "" &&
+                    id /= model.job.id
+                        && id /= job'.id
+
+                validId (id, n) =
+                    id /= ""
+
                 otherJobIdNames =
---                    List.filter (\ (id,n) -> n /= job'.name) model.jobIdNames
-                    List.filter (\ (id,n) -> id /= job'.id) model.jobIdNames
-                jobNames = List.map (\ (id, n) -> n) otherJobIdNames
---                newOptions =
---                    case jmsg of
---                        Job.SaveSucceed newJob ->
---                            [newJob.name] ++
---                                List.filter (\ n -> n /= newJob.name) jobNames
---                        _ ->
---                            jobNames
-                ( newOptionsMsgs, newJobIdNames, job'' ) =
+--                    List.filter (\ (id,n) -> id /= job'.id) model.jobIdNames
+--                    List.filter (\ (id,n) -> id /= model.job.id) model.jobIdNames
+                    List.filter otherId model.jobIdNames
+                _ = Debug.log "JobType.update:JobMsg.otherJobIdNames" otherJobIdNames
+
+                newJobIdNames =
+                    if model.job.id == job'.id then
+                        (job'.id, job'.name) :: otherJobIdNames
+                    else
+                        (job'.id, job'.name)
+                            :: (model.job.id, model.job.name)
+                            :: otherJobIdNames
+--                            :: (
+--                                if model.job.id /= "" then
+--                                    (model.job.id, model.job.name) :: otherJobIdNames
+--                                else
+--                                    otherJobIdNames
+--                            )
+--
+--                            :: otherJobIdNames
+                _ = Debug.log "JobType.update:JobMsg.newJobIdNames" newJobIdNames
+
+                validJobIdNames =
+                    List.filter validId newJobIdNames
+                _ = Debug.log "JobType.update:JobMsg.validJobIdNames" validJobIdNames
+
+                newJobNames =
+                    List.map (\ (id, n) -> n) validJobIdNames
+--                        <| List.map validId newJobIdNames
+
+
+--                oldJobIdNames =
+--                    (model.job.id, model.job.name) :: otherJobIdNames
+--                otherJobNames =
+--                    List.map (\ (id, n) -> n) otherJobIdNames
+--                oldJobNames =
+--                    List.map (\ (id, n) -> n) oldJobIdNames
+--                ( newOptionsMsgs, newJobIdNames, job'' ) =
+                newOptionsMsgs =
                     case jmsg of
-                        Job.SaveSucceed _ ->   -- newJob ->
-                            ( [ Cmd.Extra.message
+                        Job.SaveSucceed _ ->
+--                            (
+                             [ Cmd.Extra.message
                                 <| ComboMsg
                                 <| ComboBox.NewOptions
---                                <| ( [newJob.name] ++
-                                <| ( [job'.name] ++
---                                     List.filter (\ n -> n /= newJob.name) jobNames )
---                                     List.filter (\ n -> n /= job'.name)
-                                     jobNames )
+--                                <| [job'.name] ++ otherJobNames
+                                    newJobNames
+--                                    validJobIdNames
                             ]
-                            , (job'.id, job'.name) :: otherJobIdNames  -- model.jobIdNames
-                            , job' )
+--                            , (job'.id, job'.name) :: otherJobIdNames
+--                            , job'
+--                            )
                         _ ->
-                            ( [], model.jobIdNames, job' )
+--                            ( [], model.jobIdNames, job' )
+                            []
               in
                 { model
-                | job = job''
-                , jobIdNames = newJobIdNames
+--                | job = job''
+                | job = job'
+                , jobIdNames = validJobIdNames  -- newJobIdNames
                 } !
-                ( [ Cmd.map JobMsg jmsg'
---                , Cmd.Extra.message <| ComboMsg <| ComboBox.NewOptions newOptions
-                ] ++ newOptionsMsgs )
+                ( [ Cmd.map JobMsg jmsg' ] ++ newOptionsMsgs )
 
             ComboMsg cbmsg ->
               updateCombo cbmsg model

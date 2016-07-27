@@ -39,6 +39,7 @@ main =
 
 type alias Model =
     { current    : String
+    , mutable    : Bool
 --    , editField  : String
     --, entries    : Dict.Dict String String
     , entries    : List String
@@ -53,7 +54,7 @@ init entries =
   --Model "" "default" (Dict.fromList [("","")]) False
   --Model "" "default" ["", "aa", "bb"] False
 --  Model "" "" entries False
-  Model "" entries False
+  Model "" False entries False
 
 testInit : Model
 testInit =
@@ -117,7 +118,7 @@ update msg model =
 
                 { model
                 --| entries = Dict.fromList newEntries
-                | entries = newOpts
+                | entries = listTail newOpts
                 , current = firstEntry
 --                , editField = firstEntry
                 }
@@ -126,7 +127,9 @@ update msg model =
 --              ( "", [] )
               model
       in
-        model' ! []
+        { model'
+        | mutable = not <| List.isEmpty newOpts
+        } ! []
 --        { model
 --        --| entries = Dict.fromList newEntries
 --        | entries = newEntries
@@ -134,6 +137,12 @@ update msg model =
 --        , editField = ""
 --        } ! []
 
+
+listTail : List a -> List a
+listTail l =
+    case List.tail l of
+        Nothing  -> []
+        Just t_l -> t_l
 
 --updateWith : Bool -> String -> Model -> ( Model, Cmd Msg )
 --updateWith updateEntries str model =
@@ -247,7 +256,7 @@ viewX labels neutralEntry selectMsg model =
 --                          , ("background-color", "#bbbbbb")
 --                          ]
 --                        ]
-                        ( selectionStyle lbl )
+                        ( Html.Attributes.style [ ("width", "100%") ] :: ( selectionStyle lbl ))
                         [ --Html.label (selectionStyle lbl) [
                           Html.text (txt lbl)
                         ] --]
@@ -361,6 +370,7 @@ viewField model =
     , Html.Attributes.value model.current
     , Html.Events.onInput UpdateField
     --, disabled ( not currentIsEmpty )
+    , Html.Attributes.disabled <| not model.mutable
     , Html.Attributes.autofocus True
 
     --, placeholder "What needs to be done?"

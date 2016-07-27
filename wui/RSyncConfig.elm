@@ -118,9 +118,10 @@ fake : Node
 --    ] (fmtList "rsync {{}} # ..." " ")
 fake =
     aVertical "all" "All RSync"
-    [
-        aBool "b1" "Sunshine" "the sun is shining" "--sunny"
-    ] (fmtList "rsync {{}} # ..." " ")
+    [   aBool "b1" "Sunshine" "the sun is shining" "--sunny"
+    ,   aBool "r1" "Rain"     "it is raining"      "--rain"
+    ,   aBool "c1" "Clouds"   "there are clouds"   "--cloudy"
+    ] (fmtList "weather {{}} # ..." " ")
 
 
 {--------------------------------------------------------------------------------------
