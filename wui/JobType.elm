@@ -244,16 +244,20 @@ findJobId jobName model =
 
 view : Model -> Html Msg
 view model =
-      div []
+      div []  --  Html.Events.onBlur <| JobMsg <| Job.Save model.name "" ]
       [ h2 [] [ text model.name ]
       , table []
         [ tr []
           [ td [] [ button [ Html.Events.onClick NewJob ] [ text "New"] ]
           , td [] [ button [ Html.Attributes.disabled True ] [ text "Clone"] ]
-          , td [] [ button [ Html.Attributes.disabled True ] [ text "Save"] ]
+--          , td [] [ button [ Html.Attributes.disabled True ] [ text "Save"] ]
+          , td [] [ button [ Html.Events.onBlur <| JobMsg <| Job.Save model.name "" ] [ text "Save"] ]
           ]
         ]
 
+--      , div [ Html.Events.onBlur <| JobMsg <| Job.Save model.name "" ]
+--        [ Html.App.map ComboMsg <| ComboBox.view ["Job"] "--" ComboBox.Select model.combo
+--        ]
       , Html.App.map ComboMsg <| ComboBox.view ["Job"] "--" ComboBox.Select model.combo
       , Html.App.map JobMsg   <| Job.view model.name model.job
       , Html.App.map DebugMsg <| Util.Debug.view "JobType" model.debug
@@ -263,21 +267,9 @@ view model =
 -- Helpers
 
 
---newJobIdNames oldJob newJob otherJobIdNames =
---    if oldJob.id == newJob.id then
---        (newJob.id, newJob.name) :: otherJobIdNames
---    else
---        (newJob.id, newJob.name)
---            :: (oldJob.id, oldJob.name)
---            :: otherJobIdNames
-----_ = Debug.log "JobType.update:JobMsg.newJobIdNames" newJobIdNames
-
-
-newJobIdNames
-    : { c | jobIdNames : List ( String, a ), job : { b | name : a, id : String }
-    }
-    -> { d | name : a, id : String }
-    -> List ( String, a )
+newJobIdNames : Model -> Job.Model -> List ( String, String )
+--    -> { d | name : a, id : String }
+--    -> List ( String, a )
 newJobIdNames model job' =
   let
     otherId (id, n) =
