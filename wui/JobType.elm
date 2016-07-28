@@ -273,6 +273,11 @@ view model =
 ----_ = Debug.log "JobType.update:JobMsg.newJobIdNames" newJobIdNames
 
 
+newJobIdNames
+    : { c | jobIdNames : List ( String, a ), job : { b | name : a, id : String }
+    }
+    -> { d | name : a, id : String }
+    -> List ( String, a )
 newJobIdNames model job' =
   let
     otherId (id, n) =

@@ -21,7 +21,6 @@ import Html.Attributes -- exposing (..)
 import Css -- exposing (..)
 
 import String
---import Dict
 
 {----------------------------------------------
 main =
@@ -40,8 +39,6 @@ main =
 type alias Model =
     { current    : String
     , mutable    : Bool
---    , editField  : String
-    --, entries    : Dict.Dict String String
     , entries    : List String
     , debug      : Bool
     }
@@ -51,15 +48,10 @@ type alias Model =
 
 init : List String -> Model
 init entries =
-  --Model "" "default" (Dict.fromList [("","")]) False
-  --Model "" "default" ["", "aa", "bb"] False
---  Model "" "" entries False
   Model "" False entries False
 
 testInit : Model
 testInit =
-  --Model "" "default" (Dict.fromList [("","")]) False
-  --Model "" "default" ["", "aa", "bb"] False
   init ["aa", "bbbb"]
 
 
@@ -74,13 +66,10 @@ type Msg
   = UpdateField String
   | NoOp
   | Select String
---  | Success String
   | ToggleDebug Bool
-  --| NewOptions ( List (String, String) )
   | NewOptions ( List String )
 
 
--- How we update our Model on a given Msg?
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
@@ -89,20 +78,13 @@ update msg model =
 
     UpdateField str ->
       { model
---      | editField = str
       | current = str
---      , current = ""
       } ! []
 
     Select str ->
-      --updateWith False str model
       { model
       | current = str
---      , editField = str
       } ! []
-
---    Success str ->
---      updateWith True str model
 
     ToggleDebug dbg ->
       { model | debug = dbg } ! []
@@ -110,32 +92,19 @@ update msg model =
     -- NewOptions ( List String )
     NewOptions newOpts ->
       let
---        ( newField, newEntries ) =
         model' =
           case ( List.head newOpts ) of
             Just firstEntry ->
---              ( firstEntry, newOpts )
-
                 { model
-                --| entries = Dict.fromList newEntries
                 | entries = listTail newOpts
                 , current = firstEntry
---                , editField = firstEntry
                 }
-
             Nothing ->
---              ( "", [] )
               model
       in
         { model'
         | mutable = not <| List.isEmpty newOpts
         } ! []
---        { model
---        --| entries = Dict.fromList newEntries
---        | entries = newEntries
---        , current = newField
---        , editField = ""
---        } ! []
 
 
 listTail : List a -> List a
@@ -144,47 +113,20 @@ listTail l =
         Nothing  -> []
         Just t_l -> t_l
 
---updateWith : Bool -> String -> Model -> ( Model, Cmd Msg )
---updateWith updateEntries str model =
---      let
---        m =
---          if updateEntries then "Success" else "Select"
---        s =
---          if model.debug then Debug.log ( "CB." ++ m ) str
---          else str
---        nEntries =
---          if updateEntries then
---            str :: List.filter (\ e -> e /= s ) model.entries
---          else
---            model.entries
---      in
---        { model
---        | current = str
---        , editField = ""
---        , entries = nEntries
---        } ! []
 
 
 -- VIEW
 
 viewTest : Model -> Html.Html Msg
 viewTest model =
-  Html.table [] [ Html.tr [] [
-    --Html.td [] [ viewX [ Html.text "Test: Pick new" ] "--" Select model ]  --.combo ]
-    Html.td [] [ viewX [ Html.text "Test: Pick new" ] "--" Select model ]  --.combo ]
---  , Html.td [] [ viewButton (\ s -> Html.text ( "Save '" ++ s ++ "' !" ) ) Success model]  --.combo ]
---  , Html.td [] [ viewButton (\ s -> Html.text "Save" ) Success model]  --.combo ]
-  --, Html.td [] [ Html.label [] [ Html.text "Test: Pick new" ] ]
---  , Html.td [] [ --Html.App.map ComboMsg
-  --                  ( viewField model ) ]  --.combo ) ]
---  , Html.td [] [ --Html.App.map ComboMsg
-  --                  ( viewDbg model ) ]  -- .combo ) ]
-  ] ]
+  Html.table []
+  [ Html.tr []
+    [ Html.td [] [ viewX [ Html.text "Test: Pick new" ] "--" Select model ]
+    ]
+  ]
 
 
 
---view : Model -> Html.Html msg
---view model =
 view : List String -> String -> (String -> Msg) -> Model -> Html.Html Msg
 view labels neutralEntry selectMsg model =
     let
@@ -194,19 +136,12 @@ view labels neutralEntry selectMsg model =
 
 viewX : List (Html.Html Msg) -> String -> (String -> Msg) -> Model -> Html.Html Msg
 viewX labels neutralEntry selectMsg model =
-    let
-        txt s =
-          if s == "" then
-            neutralEntry
-          else
-            s
---        txt1 s =
---          txt (
---              if s == model.current then
---                "[ " ++ s ++ " ]"
---              else
---                s
---              )
+--    let
+--        txt s =
+--          if s == "" then
+--            neutralEntry
+--          else
+--            s
 
 --        selection0 s =
 --            [ Html.Events.onClick (selectMsg s) ] ++ [
@@ -218,88 +153,59 @@ viewX labels neutralEntry selectMsg model =
 --            --------------------------------------}
 --            ]
 
-        selectMsg' s =
-            if s == model.current then NoOp
---            if s == model.editField then NoOp
-            else selectMsg s
-
-        selectionStyle s =
-            [ Html.Events.onClick (selectMsg' s) ] ++
-            [
-            {--------------------------------------}
-                if s == model.current then
-                  --Html.Attributes.style [ ("backgound-color", "blue") ]
-                  stylesheet.class DropDownSelected
-                else
-                  --Html.Attributes.style []
-                  --[ stylesheet.class DropDownContent ]
-                  stylesheet.class DropDownUnselected
-            --------------------------------------}
-            ]
-    in
+--        selectMsg' s =
+--            if s == model.current then NoOp
+--            else selectMsg s
+--
+--        selectionStyle s =
+--            [ Html.Events.onClick (selectMsg' s) ]
+--    in
       Html.div []
       [ Css.style [] stylesheet
       , Html.div [ stylesheet.class DropDown ]
-        [
-          Html.table [] [ Html.tr [] [
-            Html.td [] labels
-          , Html.td []
+        [ Html.table seamlessStyle
+          [ Html.tr seamlessStyle
+            [ Html.td seamlessStyle labels
+            , Html.td seamlessStyle
               [ viewField model
               , Html.table [ stylesheet.class DropDownContent ]
-                  ( List.map (\ lbl ->
-                    Html.tr [ Html.Attributes.style [ ("width", "100%") ] ]
-                    [ Html.td [ Html.Attributes.style [ ("width", "100%") ] ]
+                ( List.map (\ lbl ->
+                    Html.tr []
+                    [ Html.td seamlessStyle
                       [ Html.button
-                        --( selection0 lbl )
---                        [ Html.Attributes.style
---                          [ ("width", "100%")
---                          , ("background-color", "#bbbbbb")
---                          ]
---                        ]
-                        ( Html.Attributes.style [ ("width", "100%") ] :: ( selectionStyle lbl ))
-                        [ --Html.label (selectionStyle lbl) [
-                          Html.text (txt lbl)
-                        ] --]
+                        [ Html.Events.onClick (selectMsg lbl)
+                        , seamlessStyleWithAttrs
+                          [ ("width", "100%")
+                          , ("background-color", "#E7FAC4")
+                          ]
+                        ]
+                        [ Html.text lbl   -- (txt lbl)
+                        ]
                       ]
-                      {----------------------------
-                      [ Html.button ( selection0 lbl )
-                        [ --Html.label (selectionStyle lbl) [
-                          Html.text (txt lbl)
-                        ] --]
-                      ]
-                      --------------------------------}
                     ]
-                  ) model.entries )
+                  ) model.entries
+                )
               ]
-          , Html.td [] [ viewDbg model ]
-          ] ]
+            , Html.td [] [ viewDbg model ]
+            ]
+          ]
         ]
       ]
 
---{-------------------------------------------------------------------}
---viewOption0 : String -> (String -> msg) -> Model -> Html.Html msg
---viewOption0 neutralEntry selectMsg model =
---  let
---    txt s =
---      if s == "" then
---        neutralEntry
---      else
---        s
---    optAttrs s =
---      ( Html.Attributes.selected ( s == model.current ) ) :: (
---        if s == model.current then
---          []
---        else
---          [ Html.Events.onClick (selectMsg s) ]
---      )
---    opt s =
---      Html.option ( optAttrs s ) [ Html.text (txt s) ]
---  in
---    Html.select []
---        ( List.map opt model.entries )
----------------------------------------------------------------------}
+seamlessStyleWithAttrs : List ( String, String ) -> Html.Attribute a
+seamlessStyleWithAttrs attrs =
+    Html.Attributes.style
+        ( seamlessAttrs ++ attrs )
 
+seamlessStyle : List (Html.Attribute a)
+seamlessStyle =
+    [ Html.Attributes.style seamlessAttrs ]
 
+seamlessAttrs : List ( String, String )
+seamlessAttrs =
+      [ ("border", "none")
+      , ("padding", "0")
+      ]
 
 
 {------------------------------------------------------------------
@@ -405,7 +311,11 @@ viewDbg model =
 ------------------------------------------------------------}
 
 
-type Class = DropDown | DropDownContent | DropDownSelected | DropDownUnselected
+type Class
+    = DropDown
+    | DropDownContent
+--    | DropDownSelected
+--    | DropDownUnselected
 
 -- import a font
 imports : List a
@@ -430,7 +340,12 @@ dropDownContentRule =
     { selectors = [Css.Class DropDownContent]
     , descriptor = [
         ("position", "absolute")
-      , ("display", "none")
+      ,
+        ("display", "none")
+--      , ("backgound-color", "#ffb366")
+      , ("background-color", "#E7FAC4")
+      , ("width", "100%")
+--      , ("overflow", "scroll")
       {------------------------------------------------------------ }
         background-color: #f9f9f9;
         min-width: 60px;
@@ -448,33 +363,40 @@ dropDownHoverRule :
     { descriptor : List ( String, String ), selectors : List (Css.Sel a Class) }
 dropDownHoverRule =
     { selectors = [Css.Descendant (Css.Class DropDownContent) (Css.Pseudo [Css.Hover] (Css.Class DropDown)) ]
-    , descriptor = [
-        ("display", "block")
-      --, ("backgound-color", "green")
+    , descriptor =
+      [ ("display", "block")
+      , ("background-color", "#E7FAC4")
+--      , ("backgound-color", "lightblue")
+--      , ("backgound-color", "#ffb366")
+--      , ("width", "100%")
       ]
     }
 
--- create a rule
-dropDownUnselectedRule :
-    { descriptor : List ( String, String ), selectors : List (Css.Sel a Class) }
-dropDownUnselectedRule =
-    { selectors = [Css.Class DropDownUnselected]
-    , descriptor = [
---        ("background-color", "#f0f0f0")
-      --, ("display", "inline-block")
-      ]
-    }
-
--- create a rule
-dropDownSelectedRule :
-    { descriptor : List ( String, String ), selectors : List (Css.Sel a Class) }
-dropDownSelectedRule =
-    { selectors = [Css.Class DropDownSelected]
-    , descriptor = [
---        ("background-color", "#404040")
-      --, ("display", "inline-block")
-      ]
-    }
+---- create a rule
+--dropDownUnselectedRule :
+--    { descriptor : List ( String, String ), selectors : List (Css.Sel a Class) }
+--dropDownUnselectedRule =
+--    { selectors = [Css.Class DropDownUnselected]
+--    , descriptor = [
+----        ("background-color", "#f0f0f0")
+--        ("backgound-color", "#66ffd9")
+--      --, ("display", "inline-block")
+--      , ("width", "100%")
+--      ]
+--    }
+--
+---- create a rule
+--dropDownSelectedRule :
+--    { descriptor : List ( String, String ), selectors : List (Css.Sel a Class) }
+--dropDownSelectedRule =
+--    { selectors = [Css.Class DropDownSelected]
+--    , descriptor = [
+----        ("background-color", "#404040")
+--        ("backgound-color", "#6666ff")
+--      --, ("display", "inline-block")
+--      , ("width", "100%")
+--      ]
+--    }
 
 -- create the stylesheet
 stylesheet : Css.Stylesheet a Class b
@@ -482,7 +404,7 @@ stylesheet = Css.stylesheet imports
     [ dropDownHoverRule
     , dropDownRule
     , dropDownContentRule
-    , dropDownSelectedRule
-    , dropDownUnselectedRule
+--    , dropDownSelectedRule
+--    , dropDownUnselectedRule
     ]
 
