@@ -50,6 +50,7 @@ type (
 		JsonSha1     string                 `json:"json_id,omitempty"`
 		YamlSha1     string                 `json:"yaml_id,omitempty"`
 		Cmd          string                 `json:"cmd,omitempty"`
+		Script       string                 `json:"script,omitempty"`
 		Debug        map[string]interface{} `json:"debug,omitempty"`
 		Nodes        []Wrap                 `json:"root"`
 		DefaultNodes []Wrap                 `json:"default_root,omitempty"`
@@ -901,21 +902,22 @@ func (job *Job) getFPath(baseDir string, cs string) string {
 
 func (job *Job) toScript(job_b []byte) []byte {
 	timeStamp := "" // fmt.Sprintf("@ %v", time.Now())
-	jobScript_b := []byte(fmt.Sprintf(`#!/bin/bash
-#
-# generated script - do not edit
-#
-cat <<EOYD | less
-#
-# begin:  %[1]s  %[2]s - %[3]s  %[5]s
-#
+	jobScript_b := []byte(fmt.Sprintf(job.Script,
+		//	jobScript_b := []byte(fmt.Sprintf(`#!/bin/bash
+		//#
+		//# generated script - do not edit
+		//#
+		//cat <<EOYD | less
+		//#
+		//# begin:  %[1]s  %[2]s - %[3]s  %[5]s
+		//#
 
-%[4]s
-#
-# end:  %[1]s  %[2]s - %[3]s  %[5]s
-#
-EOYD
-`,
-		magicLine, job.TypeName, job.Name, job_b, timeStamp))
+		//%[4]s
+		//#
+		//# end:  %[1]s  %[2]s - %[3]s  %[5]s
+		//#
+		//EOYD
+		//`,
+		magicLine, job.TypeName, job.Name, job_b, job.Cmd, timeStamp))
 	return jobScript_b
 }

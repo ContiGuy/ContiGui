@@ -206,6 +206,11 @@ updateCombo cbmsg model =
                 ( model.job
                 , Cmd.map JobMsg <| Cmd.batch [ Cmd.Extra.message <| Job.Rename s ]
                 )
+            ComboBox.FieldChanged s ->
+                model.job ! [ Cmd.Extra.message <| JobMsg <| Job.Save model.name "" ]
+--                ( model.job
+--                , Cmd.map JobMsg <| Cmd.batch [ Cmd.Extra.message <| Job.Rename s ]
+--                )
             ComboBox.Select s ->
               let
                 newJobId = findJobId s model
@@ -251,7 +256,7 @@ view model =
           [ td [] [ button [ Html.Events.onClick NewJob ] [ text "New"] ]
           , td [] [ button [ Html.Attributes.disabled True ] [ text "Clone"] ]
 --          , td [] [ button [ Html.Attributes.disabled True ] [ text "Save"] ]
-          , td [] [ button [ Html.Events.onBlur <| JobMsg <| Job.Save model.name "" ] [ text "Save"] ]
+          , td [] [ button [ Html.Events.onClick <| JobMsg <| Job.Save model.name "" ] [ text "Save"] ]
           ]
         ]
 
@@ -268,8 +273,6 @@ view model =
 
 
 newJobIdNames : Model -> Job.Model -> List ( String, String )
---    -> { d | name : a, id : String }
---    -> List ( String, a )
 newJobIdNames model job' =
   let
     otherId (id, n) =
@@ -299,13 +302,10 @@ newJobIdNames model job' =
 
 
 
---loadJobs : Model -> Cmd Msg
---loadJobs model =
 loadJobs : Cmd Msg
 loadJobs =
   let
     url = Debug.log "loading jobs from" "/jobs/RSync"
---    httpCall = Http.get decodeJobTypes url
     httpCall = Http.get decode url
   in
     Task.perform LoadJobsFail LoadJobsSucceed httpCall
@@ -364,17 +364,13 @@ decode =
     Json.Decode.succeed Model
         |: ("id"            := Json.Decode.string)
         |: ("name"          := Json.Decode.string)
-        |: ( Json.Decode.Extra.withDefault defaultJob ("job"  := Job.decode) )
---        |: Json.Decode.null    defaultJob
+        |: ( Json.Decode.Extra.withDefault defaultJob
+                ("job"           := Job.decode) )
         |: ("jobs"          := decodeJobIdNamesList)
-        |: ( Json.Decode.Extra.withDefault emptyComboBox ("combo"  := Json.Decode.null    emptyComboBox) )
---        |: Json.Decode.null    emptyComboBox
-        |: ( Json.Decode.Extra.withDefault Util.Debug.init ("debug"  := Json.Decode.null    Util.Debug.init) )
---        |: Json.Decode.null    Util.Debug.init
---        |: ( Json.Decode.Extra.withDefault "" ("job_name"  := Json.Decode.string) )
---        |: ("type_name" := Json.Decode.string)
---        |: ("root"      := Widget.Data.Json.decodeNode)
---        |: ( Json.Decode.Extra.withDefault Util.Debug.init ("debug"  := Util.Debug.decode)  )
+        |: ( Json.Decode.Extra.withDefault emptyComboBox
+                ("combo"         := Json.Decode.null emptyComboBox) )
+        |: ( Json.Decode.Extra.withDefault Util.Debug.init
+                ("debug"         := Json.Decode.null Util.Debug.init) )
 
 
 decodeJobIdNamesList : Json.Decode.Decoder (List ( String, String ))

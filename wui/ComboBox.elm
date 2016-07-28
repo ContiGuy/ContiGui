@@ -64,7 +64,7 @@ testInit =
 
 type Msg
   = UpdateField String
-  | NoOp
+  | FieldChanged String
   | Select String
   | ToggleDebug Bool
   | NewOptions ( List String )
@@ -73,10 +73,15 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
-    NoOp ->
-        model ! []
+--    NoOp ->
+--        model ! []
 
     UpdateField str ->
+      { model
+      | current = str
+      } ! []
+
+    FieldChanged str ->
       { model
       | current = str
       } ! []
@@ -270,7 +275,8 @@ viewField model =
   in
 {-------------------------------------------------------------------
 -------------------------------------------------------------------}
-    Html.input [
+    Html.input
+    [
       Html.Attributes.type' "text"
 --    , Html.Attributes.value model.editField
     , Html.Attributes.value model.current
@@ -283,6 +289,8 @@ viewField model =
     --, name "newTodo"
     --, onInput UpdateField
     --, onEnter Add
+
+    , Html.Events.onBlur <| FieldChanged model.current
     ] []
 
 

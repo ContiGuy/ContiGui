@@ -27,6 +27,7 @@ type alias Model =
   { id           : String
   , name         : String
   , typeName     : String
+  , script       : String
   , node         : Node
   , debug        : Util.Debug.Model
   }
@@ -38,7 +39,7 @@ init =
         node = aVertical "new-job" "new" [] <| fmtList "<<EMPTY JOB -- DON'T USE>>" ", "
     in
 --        ( Model node.rec.id node.rec.label "Empty Job Type" node Util.Debug.init
-        ( Model "" node.rec.label "Empty Job Type" node Util.Debug.init
+        ( Model "" node.rec.label "Empty Job Type" defaultScript node Util.Debug.init
         , Cmd.none )
 
 defaultRootNode : Node
@@ -46,6 +47,9 @@ defaultRootNode =
 --    RSyncConfig.init
     RSyncConfig.fake
 
+defaultScript : String
+defaultScript =
+    RSyncConfig.script
 
 
 -- UPDATE
@@ -376,6 +380,8 @@ decode =
         |: ( Json.Decode.Extra.withDefault "" ("job_name"  := Json.Decode.string) )
         |: ("type_name" := Json.Decode.string)
 --        |: ("cmd"       := Json.Decode.string)
+        |: ( Json.Decode.Extra.withDefault defaultScript ("script"    := Json.Decode.string)  )
+--        |: ("script"    := Json.Decode.string)
 --        |: ("root"      := decodeNode)
         |: ("root"      := Widget.Data.Json.decodeNode)
 --        |: ("debug"     := Json.Decode.bool)
@@ -416,6 +422,7 @@ encodeX jobTypeName model addFields =
     encodeNewJobOfType jobTypeName
     ( [ ("job_id",    Json.Encode.string model.id)
       , ("job_name",  Json.Encode.string model.name)
+      , ("script",    Json.Encode.string model.script)
       , ("cmd",       Json.Encode.string <| Widget.Gen.cmdOf model.node)
       , ("debug",     Util.Debug.encode model.debug)
       ] ++ addFields

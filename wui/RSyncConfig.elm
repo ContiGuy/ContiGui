@@ -112,10 +112,6 @@ init =
     ] (fmtList "rsync {{}} # ..." " ")
 
 fake : Node
---fake =
---    aVertical "all" "All RSync"
---    [
---    ] (fmtList "rsync {{}} # ..." " ")
 fake =
     aVertical "all" "All RSync"
     [   aBool "b1" "Sunshine" "the sun is shining" "--sunny"
@@ -340,3 +336,44 @@ locationSwitch id name =
   , remoteDaemon id
   ]
 
+
+--func (job *Job) toScript(job_b []byte) []byte {
+--	timeStamp := "" // fmt.Sprintf("@ %v", time.Now())
+--	jobScript_b := []byte(fmt.Sprintf(`#!/bin/bash
+--#
+--# generated script - do not edit
+--#
+--cat <<EOYD | less
+--#
+--# begin:  %[1]s  %[2]s - %[3]s  %[5]s
+--#
+--
+--%[4]s
+--#
+--# end:  %[1]s  %[2]s - %[3]s  %[5]s
+--#
+--EOYD
+--`,
+--		magicLine, job.TypeName, job.Name, job_b, timeStamp))
+--	return jobScript_b
+--}
+
+script =
+    """#!/bin/bash
+#
+# generated script - do not edit
+#
+
+%[5]s ||
+
+cat <<EOYD | less
+#
+# begin:  %[1]s  %[2]s - %[3]s  %[6]s
+#
+
+%[4]s
+#
+# end:  %[1]s  %[2]s - %[3]s  %[6]s
+#
+EOYD
+"""
