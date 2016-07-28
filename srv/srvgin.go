@@ -160,6 +160,12 @@ func ServeGin(port int, baseDir string, htmlFiles_l []string) error {
 		eh.handleJobList(baseDir, c)
 	})
 
+	router.GET("/jobs/:jobType/:jobId", func(c *gin.Context) {
+		//		time.Sleep(300 * time.Millisecond)
+		eh := errHandler_T{}
+		eh.handleJobGet(baseDir, c)
+	})
+
 	router.POST("/jobs/:jobType", func(c *gin.Context) {
 		//		time.Sleep(300 * time.Millisecond)
 		eh := errHandler_T{}
@@ -193,6 +199,43 @@ func ServeGin(port int, baseDir string, htmlFiles_l []string) error {
 	}()
 
 	return router.Run(port_s) // listen and server on 0.0.0.0:8080
+}
+
+func (eh *errHandler_T) handleJobGet(baseDir string, c *gin.Context) error {
+	//... parse JSON in post body
+	defer c.Request.Body.Close()
+
+	var (
+		jobTypeName = c.Param("jobType")
+		jobId       = c.Param("jobId")
+	)
+	log.Info("job get", "job-type", jobTypeName, "job-id", jobId)
+
+	//	jobTypeName := c.Param("jobType")
+	if jobTypeName != "RSync" {
+		panic("UNKNOWN jobTypeName = " + jobTypeName)
+	}
+
+	newJob := Job{
+		TypeName: jobTypeName,
+		Id:       jobId,
+	}
+	job, err := newJob.loadYamlScript(eh, baseDir)
+	if err != nil || job == nil {
+		c.AbortWithError(http.StatusBadRequest, err)
+		return err
+	}
+
+	log.Trace("returning job", "job", job)
+
+	eh.safe(
+		func() { eh.err = job.Check(jobTypeName, jobId) },
+		//		func() { newJob.storeYamlScript(eh, baseDir) },
+		func() { c.JSON(http.StatusOK, job) },
+	)
+
+	eh.ifErr(func() { c.AbortWithError(http.StatusBadRequest, eh.err) })
+	return eh.err
 }
 
 func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
@@ -247,37 +290,6 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 					},
 				)
 
-				//				log.Info("found job", "jobType", jobTypeName,
-				//					"jobfile", oldJobFPath, "size", len(oldJob_b))
-
-				//				var cfg_b []byte
-				//				eh.safe(func() {
-				//					cfg_b, eh.err = extractYamlConfig(oldJob_b)
-				//				})
-				//				log.Info("extracted job config", "jobType", jobTypeName,
-				//					"size", len(cfg_b))
-
-				//				var job Job
-				//				eh.safe(func() {
-				//					eh.err = yaml.Unmarshal(cfg_b, &job)
-				//				})
-				//				var rootNode *Wrap
-				//				if len(job.Nodes) > 0 {
-				//					rootNode = &job.Nodes[0]
-				//				}
-				//				log.Info("parsed job", "jobType", jobTypeName,
-				//					"job.TypeName", job.TypeName,
-				//					"name", job.Name,
-				//					"nodes", len(job.Nodes),
-				//					"root", rootNode,
-				//				)
-
-				//				eh.safe(func() {
-				//					if job.TypeName == jobTypeName {
-				//						jobType.Jobs = append(jobType.Jobs, job)
-				//					}
-				//				})
-
 				eh.ifErr(func() { c.AbortWithError(http.StatusInternalServerError, eh.err) })
 				return eh.err
 			},
@@ -287,10 +299,6 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 	var buf []byte
 	eh.safe(
 		func() {
-			//			jt := JobTypes{
-			//				JobTypes: []JobType{jobType},
-			//			}
-			//			c.JSON(http.StatusOK, jt)
 			c.JSON(http.StatusOK, jobType)
 
 			log.Info("List Jobs return", "JobType", jobType)
@@ -299,9 +307,6 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 		func() { log.Info("handleJobList: SUCCESS", "JobType", string(buf)) },
 	)
 
-	//	eh.safe(func() {
-	//		fmt.Printf("returned JobTypes =\n%s\n", buf)
-	//	})
 	eh.ifErr(func() { c.AbortWithError(http.StatusBadRequest, eh.err) })
 	return eh.err
 }
@@ -338,7 +343,7 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 		TypeName: jobTypeName,
 		Id:       "default",
 	}
-	defaultJob := newJob.loadYamlScript(eh, baseDir)
+	defaultJob, err := newJob.loadYamlScript(eh, baseDir)
 
 	//	Job struct {
 	//		TypeName     string `json:"type_name,omitempty"`
@@ -351,7 +356,7 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 	//		DefaultNodes []Wrap `json:"default_root,omitempty"` //--`json:"name"`
 	//	}
 
-	if defaultJob == nil {
+	if err != nil || defaultJob == nil {
 		newJob.Nodes = job.DefaultNodes
 		log.Info("using hardcoded default job",
 			"job.nodes", len(newJob.Nodes),
@@ -447,8 +452,8 @@ func (eh *errHandler_T) handleJobPut(baseDir string, c *gin.Context) error {
 
 			xJob := *job
 			xJob.Id = newJobId
-			newJob := xJob.loadYamlScript(eh, baseDir)
-			if newJob != nil {
+			newJob, err := xJob.loadYamlScript(eh, baseDir)
+			if newJob != nil && err == nil {
 				c.JSON(http.StatusAccepted, newJob)
 			} else {
 				c.JSON(http.StatusResetContent, job)
@@ -701,44 +706,15 @@ func /*(job *Job)*/ readJsonJob(eh *errHandler_T, r io.ReadCloser) (*Job, string
 }
 
 //func readYamlScript(eh *errHandler_T, baseDir string, job *Job) /*[]byte*/ {
-func (job *Job) loadYamlScript(eh *errHandler_T, baseDir string) *Job {
+func (job *Job) loadYamlScript(eh *errHandler_T, baseDir string) (*Job, error) {
 	var jobCfg_b []byte
-	//	var newJob Job
 
 	jobFPath := job.getFPath(baseDir, "")
 	job_b, err := ioutil.ReadFile(jobFPath)
 	if err != nil {
-		log.Info("FAILED to load job", "jobFPath", jobFPath)
-		//		return Job{
-		//			TypeName: job.TypeName,
-		//		}
-		return nil
-		//		newJob := *job
-		//		newJob.Nodes = job.DefaultNodes
-		//		newJob.DefaultNodes = nil
-		//		return newJob
+		log.Info("FAILED to load job", "jobFPath", jobFPath, "err", err.Error())
+		return nil, err
 	}
-
-	//	eh.safe(
-	//		func() {
-	//			jobFPath := job.getFPath(baseDir, "")
-	//			job_b, eh.err = ioutil.ReadFile(jobFPath)
-	//		},
-	//		//		func() {
-	//		//			jobCfg_b, eh.err = extractYamlConfig(job_b)
-	//		//			log.Info("extracted job config",
-	//		//				"job.Type", job.TypeName,
-	//		//				"job.Name", job.Name,
-	//		//				"size", len(jobCfg_b))
-	//		//		},
-	//		//		func() { eh.err = yaml.Unmarshal(jobCfg_b, &newJob) },
-	//	)
-	//	if eh.err != nil {
-	//		return Job{}
-	//	}
-
-	//	return newJob
-	//	return /*job.fromYamlScript*/ jobFromYamlScript(eh, job_b)
 
 	eh.safe(
 		func() {
@@ -749,7 +725,7 @@ func (job *Job) loadYamlScript(eh *errHandler_T, baseDir string) *Job {
 				"size", len(jobCfg_b))
 		},
 	)
-	return /*job.fromYamlScript*/ jobFromScript(eh, jobCfg_b, yaml.Unmarshal)
+	return jobFromScript(eh, jobCfg_b, yaml.Unmarshal), eh.err
 }
 
 //func readYamlScript(eh *errHandler_T, baseDir string, job *Job) /*[]byte*/ {

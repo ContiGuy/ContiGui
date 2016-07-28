@@ -52,10 +52,13 @@ defaultRootNode =
 
 type Msg
   = Rename String
-  | Save String String
   | New String
+  | Save String String
   | SaveSucceed Model
   | SaveFail Http.Error
+  | Load String String
+  | LoadFail Http.Error
+  | LoadSucceed Model
   | WidgetMsg Widget.Msg
   | DebugMsg Util.Debug.Msg
 
@@ -100,7 +103,6 @@ update msg model =
                     sljCmd = saveLoadJob jobType model newJobId
                     _ = Debug.log "Job.update:saveLoadJob" sljCmd
                 in
---                    ( model, sljCmd )
                     { model
                     | typeName = jobType
                     } ! [ sljCmd ]
@@ -128,6 +130,41 @@ update msg model =
         --          , lastOk = Nothing
         --          } ! []
 
+            Load jobTypeName newJobId ->
+                let
+                    jobType =
+                        if jobTypeName == "" then model.typeName
+                        else jobTypeName
+                    ljCmd = loadJob jobType newJobId
+                    _ = Debug.log "Job.update:loadJob" ljCmd
+                in
+                    { model
+                    | typeName = jobType
+                    } ! [ ljCmd ]
+
+            LoadSucceed newModel ->   -- Model ->
+                newModel ! []
+        --        let
+        --          ( nCombo, nCbMsg ) =
+        --            ComboBox.update (ComboBox.Success saveResult.jobName) model.combo
+        --        in
+        --          { model
+        --          | combo = nCombo
+        --          , output = toString saveResult
+        --          , lastErr = Nothing
+        --          , lastOk = Just ( "job " ++ saveResult.jobName ++ " saved" )
+        --          } ! [ Cmd.map ComboMsg nCbMsg ]
+
+            LoadFail err ->   -- Http.Error ->
+                model ! [
+                  Cmd.Extra.message <| DebugMsg <| Util.Debug.Change <| "Job.LoadFail: " ++ (toString err)
+                ]
+        --          { model
+        --          | output = toString err
+        --          , lastErr = Just err
+        --          , lastOk = Nothing
+        --          } ! []
+
             DebugMsg dbgMsg ->
                 let
                     ( newDebug, nDbgMsg ) = Util.Debug.update dbgMsg model.debug
@@ -135,6 +172,7 @@ update msg model =
                     { model
                     | debug = newDebug
                     } ! [ Cmd.map DebugMsg nDbgMsg ]
+
         ( debug', dbgMsg' ) =
             let
                 modelStr = toString
@@ -243,6 +281,26 @@ newJobCall jobTypeName model =
 --saveLoadJob jobTypeName model =
 --    saveLoadJobCall jobTypeName model
 --        |> Task.perform SaveFail SaveSucceed
+
+loadJob : String -> String -> Cmd Msg
+loadJob jobTypeName newJobId =
+--  let
+--    _ = Debug.log "Job.loadJob" model
+--  in
+    loadJobCall jobTypeName newJobId
+        |> Task.perform LoadFail LoadSucceed
+
+
+loadJobCall : String -> String -> Task.Task Http.Error Model
+--saveLoadJobCall jobTypeName job =
+loadJobCall jobTypeName newJobId =
+  let
+    url = "/jobs/RSync" ++ "/" ++ newJobId
+--    body_s =
+--      encode jobTypeName model
+--        |> Json.Encode.encode 2
+  in
+    Http.get decode url
 
 saveLoadJob : String -> Model -> String -> Cmd Msg
 saveLoadJob jobTypeName model newJobId =

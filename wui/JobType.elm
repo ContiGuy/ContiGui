@@ -164,10 +164,16 @@ update msg model =
                         List.map (\ (id, n) -> n) jobType.jobIdNames
                     _ = Debug.log "JobType.LoadJobsSucceed:loadedJobNames" loadedJobNames
 
-                    newOptionsMsgs =
-                                [ Cmd.Extra.message <| ComboMsg <| ComboBox.NewOptions loadedJobNames ]
+                    jobLoadMsgs =
+                        case List.head jobType.jobIdNames of
+                            Nothing -> []
+                            Just (jobId, jobName ) ->
+                                [ Cmd.Extra.message <| JobMsg <| Job.Load jobType.name jobId
+                                ]
                 in
-                    jobType ! newOptionsMsgs
+                    jobType !
+                    ( [ Cmd.Extra.message <| ComboMsg <| ComboBox.NewOptions loadedJobNames
+                    ] ++ jobLoadMsgs )
 
 
         ( debug', dbgMsg' ) =
