@@ -58,20 +58,17 @@ type alias Model =
 
 init : (Model, Cmd Msg)
 init =
---  let
+  let
 --    ( root, nodes ) = aRoot "RSync" [
 --      fst RSync.init
 --    ] (fmtList "rsync {{}} # ..." " ")
---    jt = JobType.init
---  in
---    ( Model "" "default" "" False root
+    ( jobType, jtCmd ) = JobType.init
+  in
     ( Model "" False
---      jt
-      --( fst RSync.init ).root
---      (fst RSync.init)
-      (fst JobType.init)
+--      (fst JobType.init)
+      jobType
 --      True
-    , Cmd.none )
+    , Cmd.map JobTypeMsg jtCmd )
 
 
 -- UPDATE

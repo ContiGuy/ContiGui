@@ -30,9 +30,9 @@ const (
 )
 
 type (
-	JobTypes struct {
-		JobTypes []JobType `json:"job_types,omitempty"`
-	}
+	//	JobTypes struct {
+	//		JobTypes []JobType `json:"job_types,omitempty"`
+	//	}
 
 	JobType struct {
 		//		Id   string `json:"id,omitempty"`
@@ -154,6 +154,12 @@ func ServeGin(port int, baseDir string, htmlFiles_l []string) error {
 		eh.ifErr(func() { c.AbortWithError(http.StatusBadRequest, eh.err) })
 	})
 
+	router.GET("/jobs/:jobType", func(c *gin.Context) {
+		//		time.Sleep(300 * time.Millisecond)
+		eh := errHandler_T{}
+		eh.handleJobList(baseDir, c)
+	})
+
 	router.POST("/jobs/:jobType", func(c *gin.Context) {
 		//		time.Sleep(300 * time.Millisecond)
 		eh := errHandler_T{}
@@ -164,12 +170,6 @@ func ServeGin(port int, baseDir string, htmlFiles_l []string) error {
 		//		time.Sleep(300 * time.Millisecond)
 		eh := errHandler_T{}
 		eh.handleJobPut(baseDir, c)
-	})
-
-	router.GET("/jobs/:jobType", func(c *gin.Context) {
-		//		time.Sleep(300 * time.Millisecond)
-		eh := errHandler_T{}
-		eh.handleJobList(baseDir, c)
 	})
 
 	router.GET("/ping", func(c *gin.Context) {
@@ -217,36 +217,66 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 
 			// cmdDir, jobTypeName, jobName
 			func(oldJobFPath string, oldJob_b []byte) error {
-				log.Info("found job", "jobType", jobTypeName,
-					"jobfile", oldJobFPath, "size", len(oldJob_b))
-
 				var cfg_b []byte
-				eh.safe(func() {
-					cfg_b, eh.err = extractYamlConfig(oldJob_b)
-				})
-				log.Info("extracted job config", "jobType", jobTypeName,
-					"size", len(cfg_b))
-
 				var job Job
-				eh.safe(func() {
-					eh.err = yaml.Unmarshal(cfg_b, &job)
-				})
 				var rootNode *Wrap
-				if len(job.Nodes) > 0 {
-					rootNode = &job.Nodes[0]
-				}
-				log.Info("parsed job", "jobType", jobTypeName,
-					"job.TypeName", job.TypeName,
-					"name", job.Name,
-					"nodes", len(job.Nodes),
-					"root", rootNode,
+				eh.safe(
+					func() {
+						log.Info("found job", "jobType", jobTypeName,
+							"jobfile", oldJobFPath, "size", len(oldJob_b))
+						cfg_b, eh.err = extractYamlConfig(oldJob_b)
+					},
+					func() {
+						log.Info("extracted job config", "jobType", jobTypeName,
+							"size", len(cfg_b))
+						eh.err = yaml.Unmarshal(cfg_b, &job)
+					},
+					func() {
+						if len(job.Nodes) > 0 {
+							rootNode = &job.Nodes[0]
+						}
+						log.Info("parsed job", "jobType", jobTypeName,
+							"job.TypeName", job.TypeName,
+							"name", job.Name,
+							"nodes", len(job.Nodes),
+							"root", rootNode,
+						)
+						if job.TypeName == jobTypeName {
+							jobType.Jobs = append(jobType.Jobs, job)
+						}
+					},
 				)
 
-				eh.safe(func() {
-					if job.TypeName == jobTypeName {
-						jobType.Jobs = append(jobType.Jobs, job)
-					}
-				})
+				//				log.Info("found job", "jobType", jobTypeName,
+				//					"jobfile", oldJobFPath, "size", len(oldJob_b))
+
+				//				var cfg_b []byte
+				//				eh.safe(func() {
+				//					cfg_b, eh.err = extractYamlConfig(oldJob_b)
+				//				})
+				//				log.Info("extracted job config", "jobType", jobTypeName,
+				//					"size", len(cfg_b))
+
+				//				var job Job
+				//				eh.safe(func() {
+				//					eh.err = yaml.Unmarshal(cfg_b, &job)
+				//				})
+				//				var rootNode *Wrap
+				//				if len(job.Nodes) > 0 {
+				//					rootNode = &job.Nodes[0]
+				//				}
+				//				log.Info("parsed job", "jobType", jobTypeName,
+				//					"job.TypeName", job.TypeName,
+				//					"name", job.Name,
+				//					"nodes", len(job.Nodes),
+				//					"root", rootNode,
+				//				)
+
+				//				eh.safe(func() {
+				//					if job.TypeName == jobTypeName {
+				//						jobType.Jobs = append(jobType.Jobs, job)
+				//					}
+				//				})
 
 				eh.ifErr(func() { c.AbortWithError(http.StatusInternalServerError, eh.err) })
 				return eh.err
@@ -255,27 +285,26 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 	})
 
 	var buf []byte
-	eh.safe(func() {
-		jt := JobTypes{
-			JobTypes: []JobType{jobType},
-		}
-		c.JSON(http.StatusOK, jt)
+	eh.safe(
+		func() {
+			//			jt := JobTypes{
+			//				JobTypes: []JobType{jobType},
+			//			}
+			//			c.JSON(http.StatusOK, jt)
+			c.JSON(http.StatusOK, jobType)
 
-		log.Info("List Jobs return", "JobTypes", jt)
+			log.Info("List Jobs return", "JobType", jobType)
+			buf, eh.err = json.Marshal(jobType)
+		},
+		func() { log.Info("handleJobList: SUCCESS", "JobType", string(buf)) },
+	)
 
-		buf, eh.err = json.Marshal(jt)
-	})
-
-	eh.safe(func() {
-		fmt.Printf("returned JobTypes =\n%s\n", buf)
-	})
+	//	eh.safe(func() {
+	//		fmt.Printf("returned JobTypes =\n%s\n", buf)
+	//	})
 	eh.ifErr(func() { c.AbortWithError(http.StatusBadRequest, eh.err) })
 	return eh.err
 }
-
-//-- (ALWAYS) create an id for a (new) job and save it to disk and return it.
-//-- if it does not have any node attached to it, return a default job for that job type.
-//-- cannot ask for another job with any id.
 
 // this call performs 2 tasks:
 // 1. if the request body contains a valid job (with an id) the job will be stored on disk [optional]
@@ -292,12 +321,6 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 
 	job, _ /*body_s*/ := readJsonJob(eh, c.Request.Body)
 
-	//	if job != nil && job.Check(jobTypeName, "") == nil {
-	//		job.storeYamlScript(eh, baseDir)
-	//	} else {
-	//		log.Info("posted job invalid - not stored", "job", job)
-	//	}
-
 	if job == nil {
 		log.Info("posted job EMPTY - not stored")
 	} else {
@@ -310,17 +333,6 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 				"nodes", len(job.Nodes), "err", err.Error())
 		}
 	}
-
-	//	if job == nil || len(job.Nodes) == 0 {
-	//		xJob := Job{}
-	//		if job != nil {
-	//			xJob = *job
-	//		}
-
-	//		// load default job
-	//		xJob.TypeName = jobTypeName
-	//		//		job.Name = "default"
-	//		xJob.Id = "default"
 
 	newJob := Job{
 		TypeName: jobTypeName,
@@ -341,8 +353,6 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 
 	if defaultJob == nil {
 		newJob.Nodes = job.DefaultNodes
-		//			job.DefaultNodes = nil
-		//			log.Trace("contructed default job", "job", job)
 		log.Info("using hardcoded default job",
 			"job.nodes", len(newJob.Nodes),
 			"job.defaultNodes", len(newJob.DefaultNodes))
@@ -362,21 +372,26 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 	newJob.Name += "-" + idTail
 
 	log.Trace("constructed new job", "job", newJob)
-	//	}
 
-	eh.safe(func() {
-		eh.err = newJob.Check(jobTypeName, "")
-		//		eh.ifErr(func() {
-		//			if len(body_s) > 200 {
-		//				body_s = body_s[:200]
-		//			}
-		//			log.Warn("Job.Check failed", "body", body_s)
-		//		})
-	})
+	eh.safe(
+		func() { eh.err = newJob.Check(jobTypeName, "") },
+		func() { newJob.storeYamlScript(eh, baseDir) },
+		func() { c.JSON(http.StatusCreated, newJob) },
+	)
 
-	newJob.storeYamlScript(eh, baseDir)
+	//	eh.safe(func() {
+	//		eh.err = newJob.Check(jobTypeName, "")
+	//		//		eh.ifErr(func() {
+	//		//			if len(body_s) > 200 {
+	//		//				body_s = body_s[:200]
+	//		//			}
+	//		//			log.Warn("Job.Check failed", "body", body_s)
+	//		//		})
+	//	})
 
-	eh.safe(func() { c.JSON(http.StatusCreated, newJob) })
+	//	newJob.storeYamlScript(eh, baseDir)
+
+	//	eh.safe(func() { c.JSON(http.StatusCreated, newJob) })
 
 	eh.ifErr(func() { c.AbortWithError(http.StatusBadRequest, eh.err) })
 	return eh.err

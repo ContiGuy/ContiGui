@@ -202,8 +202,8 @@ newJobCall jobTypeName model =
 --            , Http.post
             )
         else
---            ( encodeJob jobTypeName model
-            ( encodeJobX jobTypeName model
+--            ( encode jobTypeName model
+            ( encodeX jobTypeName model
                 [ ("root",          Widget.Data.Json.encodeNode model.node)
                 , ("default_root",  Widget.Data.Json.encodeNode defaultRootNode)
                 ]
@@ -211,7 +211,7 @@ newJobCall jobTypeName model =
 --            , Http.put
             )
   in
-    Http.post decodeJob url (Http.string body_s)
+    Http.post decode url (Http.string body_s)
 
 --newJobCall : String -> Model -> Task.Task Http.Error Model
 --newJobCall jobTypeName model =
@@ -224,7 +224,7 @@ newJobCall jobTypeName model =
 --        ]
 --        |> Json.Encode.encode 2
 --  in
---    Http.post decodeJob url (Http.string body_s)
+--    Http.post decode url (Http.string body_s)
 
 --newJobCall : String -> Model -> Task.Task Http.Error Model
 --newJobCall jobTypeName model =
@@ -237,7 +237,7 @@ newJobCall jobTypeName model =
 --        ]
 --        |> Json.Encode.encode 2
 --  in
---    Http.post decodeJob url (Http.string body_s)
+--    Http.post decode url (Http.string body_s)
 
 --saveLoadJob : String -> Model -> Cmd Msg
 --saveLoadJob jobTypeName model =
@@ -266,10 +266,10 @@ saveLoadJobCall jobTypeName model newJobId =
 --      initJob jobName model
 --      job
 --        |>
-      encodeJob jobTypeName model
+      encode jobTypeName model
         |> Json.Encode.encode 2
   in
-    httpSend "PUT" decodeJob url (Http.string body_s)
+    httpSend "PUT" decode url (Http.string body_s)
 
 httpSend
     : String
@@ -301,10 +301,10 @@ httpSend verb decoder url body =
 
 
 {----------------------------------------------}
---decodeJob : Json.Decode.Decoder node -> Json.Decode.Decoder Model
---decodeJob decodeNode =
-decodeJob : Json.Decode.Decoder Model
-decodeJob =
+--decode : Json.Decode.Decoder node -> Json.Decode.Decoder Model
+--decode decodeNode =
+decode : Json.Decode.Decoder Model
+decode =
 --  { id           : String
 --  , name         : String
 --  , node         : Node
@@ -331,9 +331,9 @@ decodeJob =
 
 --encodeJob : (node -> Json.Encode.Value) -> String -> Model -> Json.Encode.Value
 --encodeJob encodeNode jobTypeName job =
-encodeJob : String -> Model -> Json.Encode.Value
-encodeJob jobTypeName model =
-    encodeJobX jobTypeName model [
+encode : String -> Model -> Json.Encode.Value
+encode jobTypeName model =
+    encodeX jobTypeName model [
         ("root",      Widget.Data.Json.encodeNode model.node)
     ]
 
@@ -348,13 +348,13 @@ encodeJob jobTypeName model =
 --        , ("root",      Widget.Data.Json.encodeNode job.node)
 --        ]
 
---encodeJobX : String -> Model -> Json.Encode.Value
-encodeJobX
+--encodeX : String -> Model -> Json.Encode.Value
+encodeX
     : String
     -> Model  --  { a | id : String, name : String, node : Node }
     -> List ( String, Json.Encode.Value )
     -> Json.Encode.Value
-encodeJobX jobTypeName model addFields =
+encodeX jobTypeName model addFields =
     encodeNewJobOfType jobTypeName
     ( [ ("job_id",    Json.Encode.string model.id)
       , ("job_name",  Json.Encode.string model.name)
