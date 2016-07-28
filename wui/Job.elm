@@ -1,6 +1,7 @@
 module Job exposing (..)
 
 import Html              exposing (..)
+import Html.Attributes
 import Html.App
 import Http
 import Task
@@ -44,8 +45,8 @@ init =
 
 defaultRootNode : Node
 defaultRootNode =
---    RSyncConfig.init
-    RSyncConfig.fake
+    RSyncConfig.init
+--    RSyncConfig.fake
 
 defaultScript : String
 defaultScript =
@@ -199,15 +200,15 @@ view : String -> Model -> Html Msg
 view jobTypeName model =
   div []
   [ table []
-    [
---      tr []
---      [ th [] [ text jobTypeName ]
---      , td [] [ text model.name ]
---      ]
---    ,
-      tr []
-      [ td [] [ Html.App.map WidgetMsg (Widget.view model.node) ]
-      ]
+    [ tr [] [ td [] [ Html.App.map WidgetMsg (Widget.view model.node) ] ]
+
+    , h4 [] [ text "Details" ]
+    , tr [] [ td [] [ table []
+          [ tr [] [
+            td [] [ text "command:" ], td [] [ em [] [ text <| Widget.Gen.cmdOf model.node ] ] ]
+          , tr [] [ td [] [ text "id:" ],      td [] [ em [] [ text model.id ] ] ]
+          ] ] ]
+
 --    , Html.App.map DebugMsg ( Util.Debug.viewDbgStr "Job" model.output model.debug )
     , Html.App.map DebugMsg ( Util.Debug.view "Job" model.debug )
     ]

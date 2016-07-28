@@ -108,8 +108,8 @@ init =
     [
       options
     , locationSwitches
---    ] (fmtList "{{}}" " ")
-    ] (fmtList "rsync {{}} # ..." " ")
+--    ] (fmtList "rsync {{}} # ..." " ")
+    ] (fmtList "rsync {{}}" " ")
 
 fake : Node
 fake =
