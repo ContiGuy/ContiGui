@@ -1,7 +1,7 @@
 module Job exposing (..)
 
 import Html              exposing (..)
-import Html.Attributes
+--import Html.Attributes
 import Html.App
 import Http
 import Task

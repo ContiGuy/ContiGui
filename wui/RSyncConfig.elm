@@ -358,6 +358,7 @@ locationSwitch id name =
 --	return jobScript_b
 --}
 
+script : String
 script =
     """#!/bin/bash
 #
