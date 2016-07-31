@@ -55,53 +55,107 @@ init =
 --    ] (fmtList "rsync {{}} # ..." " ")
 
     -- Options 1
-    verbose       = aBool  "v" "Verbose"   "increase verbosity"                            "--verbose"
-    quiet         = aBool  "q" "Quiet"     "suppress non-error messages"                   "--quiet"
-    checksum      = aBooT  "c" "Checksum"  "skip based on checksum, not mod-time & size"   "--checksum"
-    archive       = aBool  "a" "Archive"   "archive mode; equals -rlptgoD (no -H,-A,-X)"   "--archive"
-
-    -- Options 2
-    recursive     = aBooT  "r" "Recursive" "recurse into directories"                      "--recursive"
-    relative      = aBool  "R" "Relative"  "use relative path names"                       "--relative"
-    backup        = aBool  "b" "Backup"    "make backups (see --suffix & --backup-dir)"    "--backup"
-    update        = aBool  "u" "Update"    "skip files that are newer on the receiver"     "--update"
-
-    -- Options 3
-    dirs          = aBool  "d" "Directories"      "transfer directories without recursing"      "--dirs"
-    links         = aBool  "l" "Symlinks"         "copy symlinks as symlinks"                   "--links"
-    copyLinks     = aBool  "L" "Copy Symlinks"    "transform symlink into referent file/dir"    "--copy-links"
-    copyDirLinks  = aBool  "k" "Copy Dirlinks"    "transform symlink to dir into referent dir"  "--copy-dirlinks"
-
-
     options1 =
       aVertical "flags1" "Options 1" [
-        verbose
-      , quiet
-      , checksum
-      , archive
+--    options1 =
+--      aVertical "flags3" "Options 3" [
+--    verbose       =
+        aBool  "v" "Verbose"   "increase verbosity"                            "--verbose"
+--    quiet         =
+      , aBool  "q" "Quiet"     "suppress non-error messages"                   "--quiet"
+--    checksum      =
+      , aBooT  "c" "Checksum"  "skip based on checksum, not mod-time & size"   "--checksum"
+--    archive       =
+      , aBool  "a" "Archive"   "archive mode; equals -rlptgoD (no -H,-A,-X)"   "--archive"
       ] (fmtList "{{}}" " ")
 
+    -- Options 2
     options2 =
       aVertical "flags2" "Options 2" [
-        recursive
-      , relative
-      , backup
-      , update
+--    recursive     =
+        aBooT  "r" "Recursive" "recurse into directories"                      "--recursive"
+--    relative      =
+      , aBool  "R" "Relative"  "use relative path names"                       "--relative"
+--    backup        =
+      , aBool  "b" "Backup"    "make backups (see --suffix & --backup-dir)"    "--backup"
+--    update        =
+      , aBool  "u" "Update"    "skip files that are newer on the receiver"     "--update"
       ] (fmtList "{{}}" " ")
 
+
+    -- Options 3
     options3 =
       aVertical "flags3" "Options 3" [
-        dirs
-      , links
-      , copyLinks
-      , copyDirLinks
+        aBool  "t" "Preserve Times"        "preserve modification times"            "--times"
+      , aBool  "p" "Preserve Permissions"  "preserve permissions"                   "--perms"
+      , aBool  "o" "Preserve Owner"        "preserve owner (super-user only)"       "--owner"
+      , aBool  "g" "Preserve Group"        "preserve group"                         "--group"
       ] (fmtList "{{}}" " ")
+
+    -- Options 4
+    options4 =
+      aVertical "flags4" "Options 4" [
+        aBool  "del" "Delete from Destination" "delete extraneous files from dest dirs"        "--delete"
+      , aBool  "ie" "Ignore Existing Files"    "skip updating files that exist on receiver"    "--ignore-existing"
+      , aBool  "x" "Stay on One File system"   "don't cross filesystem boundaries"             "--one-file-system"
+      , aBool  "s" "Protect remote arguments"  "no space-splitting; wildcard chars only"       "--protect-args"
+      ] (fmtList "{{}}" " ")
+
+
+    -- Options 5
+    options5 =
+      aVertical "flags5" "Options 5" [
+--    dirs          =
+        aBool  "d" "Directories"      "transfer directories without recursing"      "--dirs"
+--    links         =
+      , aBool  "l" "Symlinks"         "copy symlinks as symlinks"                   "--links"
+--    copyLinks     =
+      , aBool  "L" "Copy Symlinks"    "transform symlink into referent file/dir"    "--copy-links"
+--    copyDirLinks  =
+--      , aBool  "k" "Copy Dirlinks"    "transform symlink to dir into referent dir"  "--copy-dirlinks"
+      , aBooT  "n" "Dry Run"          "perform a trial run with no changes made"  "--dry-run"
+      ] (fmtList "{{}}" " ")
+
+
+--    options1 =
+--      aVertical "flags1" "Options 1" [
+--        verbose
+--      , quiet
+--      , checksum
+--      , archive
+--      ] (fmtList "{{}}" " ")
+--
+--    options2 =
+--      aVertical "flags2" "Options 2" [
+--        recursive
+--      , relative
+--      , backup
+--      , update
+--      ] (fmtList "{{}}" " ")
+
+--    options3 =
+--      aVertical "flags3" "Options 3" [
+--        times
+--      , links
+--      , copyLinks
+--      , copyDirLinks
+--      ] (fmtList "{{}}" " ")
+
+--    options5 =
+--      aVertical "flags4" "Options 4" [
+--        dirs
+--      , links
+--      , copyLinks
+--      , copyDirLinks
+--      ] (fmtList "{{}}" " ")
 
     options =
       aHorizontal "opts" "Options" [
         options1
       , options2
       , options3
+      , options4
+      , options5
       ] (fmtList "{{}}" " ")
   in
     aVertical "all" "All RSync"
@@ -149,17 +203,17 @@ fake =
 .        -k, --copy-dirlinks         transform symlink to dir into referent dir
         -K, --keep-dirlinks         treat symlinked dir on receiver as dir
         -H, --hard-links            preserve hard links
-        -p, --perms                 preserve permissions
+.        -p, --perms                 preserve permissions
         -E, --executability         preserve executability
             --chmod=CHMOD           affect file and/or directory permissions
         -A, --acls                  preserve ACLs (implies -p)
         -X, --xattrs                preserve extended attributes
-        -o, --owner                 preserve owner (super-user only)
-        -g, --group                 preserve group
+.        -o, --owner                 preserve owner (super-user only)
+.        -g, --group                 preserve group
             --devices               preserve device files (super-user only)
             --specials              preserve special files
         -D                          same as --devices --specials
-        -t, --times                 preserve modification times
+.        -t, --times                 preserve modification times
         -O, --omit-dir-times        omit directories from --times
         -J, --omit-link-times       omit symlinks from --times
             --super                 receiver attempts super-user activities
@@ -168,15 +222,15 @@ fake =
             --preallocate           allocate dest files before writing
         -n, --dry-run               perform a trial run with no changes made
         -W, --whole-file            copy files whole (w/o delta-xfer algorithm)
-        -x, --one-file-system       don't cross filesystem boundaries
+.        -x, --one-file-system       don't cross filesystem boundaries
         -B, --block-size=SIZE       force a fixed checksum block-size
         -e, --rsh=COMMAND           specify the remote shell to use
             --rsync-path=PROGRAM    specify the rsync to run on remote machine
             --existing              skip creating new files on receiver
-            --ignore-existing       skip updating files that exist on receiver
+.            --ignore-existing       skip updating files that exist on receiver
             --remove-source-files   sender removes synchronized files (non-dir)
             --del                   an alias for --delete-during
-            --delete                delete extraneous files from dest dirs
+.            --delete                delete extraneous files from dest dirs
             --delete-before         receiver deletes before xfer, not during
             --delete-during         receiver deletes during the transfer
             --delete-delay          find deletions during, delete after
@@ -223,7 +277,7 @@ fake =
             --include-from=FILE     read include patterns from FILE
             --files-from=FILE       read list of source-file names from FILE
         -0, --from0                 all *from/filter files are delimited by 0s
-        -s, --protect-args          no space-splitting; wildcard chars only
+.        -s, --protect-args          no space-splitting; wildcard chars only
             --address=ADDRESS       bind address for outgoing socket to daemon
             --port=PORT             specify double-colon alternate port number
             --sockopts=OPTIONS      specify custom TCP options

@@ -335,7 +335,12 @@ mkLabel showLabel node =
     let
         em' styles lbl =
             em
-                [ Html.Attributes.style styles ]
+                ( if List.length styles > 0 then
+                    [ Html.Attributes.style styles ]
+                  else []
+                )
+--                [ Html.Attributes.style styles
+--                ]
                 [ text lbl ]
         (sfx, txt) =
             case node.rec.value of
