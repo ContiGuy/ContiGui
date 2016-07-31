@@ -93,6 +93,7 @@ update msg model =
             Upgrade ->
               { model
               | node = Widget.Gen.upgrade defaultRootNode model.node
+              , script = defaultScript
               } ! []
 
             WidgetMsg wm ->

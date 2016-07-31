@@ -223,10 +223,6 @@ view model =
           , td [] [ button [ Html.Events.onClick <| JobMsg <| Job.Upgrade ]            [ text "Upgrade"] ]
           ]
         ]
-
---      , div [ Html.Events.onBlur <| JobMsg <| Job.Save model.name "" ]
---        [ Html.App.map ComboMsg <| ComboBox.view ["Job"] "--" ComboBox.Select model.combo
---        ]
       , Html.App.map ComboMsg <| ComboBox.view ["Job"] "--" ComboBox.Select model.combo
       , Html.App.map JobMsg   <| Job.view model.name model.job
       , Html.App.map DebugMsg <| Util.Debug.view "JobType" model.debug
