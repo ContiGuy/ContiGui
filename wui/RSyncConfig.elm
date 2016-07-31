@@ -369,6 +369,8 @@ script : String
 script =
     """#!/bin/bash
 #
+#    %[2]s - %[3]s  %[6]s
+#
 # generated script - do not edit
 #
 
