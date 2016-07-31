@@ -48,91 +48,22 @@ import Html.Attributes exposing (..)
 
 -- MODEL
 
-{-------------------------------------------------
--------------------------------------------------}
-
-
-{-------------------------------------------------
-treeToJson : Int -> Node -> String
-treeToJson indent node =
-  JE.encode indent (jsonValueRec True node)
-
-nodeToJson : Int -> Node -> String
-nodeToJson indent node =
-  JE.encode indent (jsonValueRec False node)
-
-jsonValueRec : Bool -> Node -> JE.Value
-jsonValueRec recurse node =
-  let
-    --(val, typ, boolState, strValue) =
-    (val, typ) =
-      case node.value of
-        BoolValue b ->
-          ( JE.bool b, "Bool" )
-        StringValue s ->
-          ( JE.string s, "String" )
-        RootCmd ->
-          ( JE.string node.label, "Root" )
-        --Group isVertical showLabel ->
-        Group isVertical ->
-          ( JE.string node.label
-          , if isVertical then
-              "VerticalGroup"
-            else
-              "HorizontalGroup"
-          )
-        Switch sid ->
-          ( JE.string sid, "Switch" )
-
-    cmdlet = cmdOf node
-
-    kids_l = kidsOf node
-    extra =
-      if recurse && List.length kids_l > 0 then
-        [ ( "kids", JE.list ( List.map (jsonValueRec recurse) kids_l ) ) ]
-      else
-        []
-
-    rootNode = JE.object ( [
-        ( "id",          JE.string node.id )
-      , ( "label",       JE.string node.label )
-      , ( "description", JE.string node.descr )
-      , ( "type",        JE.string typ )
-      , ( "value",       val )
-      , ( "cmdlet",      JE.string cmdlet )
-      ] ++ extra )
-  in
-    rootNode
-
-jobAsJson : Int -> String -> Node -> String
-jobAsJson indent cfgName node =
-  let
-    rootNode = jsonValueRec True node
-    job = JE.object ( [
-        ( "name",          JE.string cfgName )
-    ,   ( "root",          rootNode )
-    ] )
-  in
-    JE.encode indent job
--------------------------------------------------}
-
-
-{----------------------------------------------
-
-nodeToJson : Int -> Node -> String
-nodeToJson indent node =
-  Json.Encode.encode indent (encodeNode node)
-
-
-nodeAsHtmlLI : Node -> Html Msg
-nodeAsHtmlLI node =
-      li [] [ text ( nodeToJson 2 node )
-      , kidsAsUL node
-      ]
-
-kidsAsUL : Node -> Html Msg
-kidsAsUL node =
-      ul [] ( List.map (\ k -> nodeAsHtmlLI k) ( kidsOf node ) )
+--{----------------------------------------------
+--
+--nodeToJson : Int -> Node -> String
+--nodeToJson indent node =
+--  Json.Encode.encode indent (encodeNode node)
+--
+--
+--nodeAsHtmlLI : Node -> Html Msg
+--nodeAsHtmlLI node =
+--      li [] [ text ( nodeToJson 2 node )
+--      , kidsAsUL node
+--      ]
+--
+--kidsAsUL : Node -> Html Msg
+--kidsAsUL node =
+--      ul [] ( List.map (\ k -> nodeAsHtmlLI k) ( kidsOf node ) )
 ----------------------------------------------
 ----------------------------------------------}
 
@@ -236,16 +167,30 @@ viewRoot node =
   in
     ( node.rec.label, cont)
 
+viewRecord : Html Msg -> Record -> Html Msg
+viewRecord defaultHtml rec =
+  case rec.value of
+    BoolValue _ ->
+--      node2Table node
+      record2Table rec
+
+    StringValue _ _ ->
+--      node2Table node
+      record2Table rec
+
+    _ ->
+        defaultHtml
+
 view : Node -> Html Msg
 view node =
   case node.rec.value of
     BoolValue _ ->
-      -- node2TR node
-      node2Table node
+--      node2Table node
+      record2Table node.rec
 
     StringValue _ _ ->
-      -- node2TR node
-      node2Table node
+--      node2Table node
+      record2Table node.rec
 
 --    RootCmd ->
 --      div [] ( [
@@ -274,8 +219,8 @@ view node =
           ]
         kidsAsRadioTRs_l = List.map mkRadioTR kidsIdsAndLabels_l
         switchBoard = tr [] [ th [] [
-          text node.rec.label
-        ]] :: kidsAsRadioTRs_l
+            text node.rec.label
+          ]] :: kidsAsRadioTRs_l
 
         selectedKidTR =
           case (getSelectedKid sid node) of
@@ -306,7 +251,7 @@ viewGroup orientation node =
           let
             -- one row
             row (cont, nd, showLabel) =
-              tr [] [ mkLabel showLabel nd, td [] [cont] ]
+              tr [] [ mkLabel showLabel nd.rec, td [] [cont] ]
           in
             -- all rows
               ( List.map row (kidsListOfTuples node) )
@@ -330,8 +275,35 @@ viewGroup orientation node =
 
 
 
-mkLabel : Bool -> Node -> Html Msg
-mkLabel showLabel node =
+--mkLabel' : Bool -> Node -> Html Msg
+--mkLabel' showLabel node =
+--    let
+--        em' styles lbl =
+--            em
+--                ( if List.length styles > 0 then
+--                    [ Html.Attributes.style styles ]
+--                  else []
+--                )
+--                [ text lbl ]
+--        (sfx, txt) =
+--            case node.rec.value of
+--                StringValue s required ->
+--                    if required then
+--                        (" *"
+--                        , em' ( if s == "" then [("color", "red")] else [] )
+--                        )
+--                    else
+--                        ("", text)
+--                _ ->
+--                    ("", text)
+--    in
+--      if showLabel then
+--        td [ title node.rec.descr ] [ txt <| node.rec.label ++ sfx ]
+--      else
+--        td [ title ( node.rec.label ++ sfx ++ " : " ++ node.rec.descr ) ] []
+
+mkLabel : Bool -> Record -> Html Msg
+mkLabel showLabel rec =
     let
         em' styles lbl =
             em
@@ -339,11 +311,9 @@ mkLabel showLabel node =
                     [ Html.Attributes.style styles ]
                   else []
                 )
---                [ Html.Attributes.style styles
---                ]
                 [ text lbl ]
         (sfx, txt) =
-            case node.rec.value of
+            case rec.value of
                 StringValue s required ->
                     if required then
                         (" *"
@@ -355,9 +325,9 @@ mkLabel showLabel node =
                     ("", text)
     in
       if showLabel then
-        td [ title node.rec.descr ] [ txt <| node.rec.label ++ sfx ]
+        td [ title rec.descr ] [ txt <| rec.label ++ sfx ]
       else
-        td [ title ( node.rec.label ++ sfx ++ " : " ++ node.rec.descr ) ] []
+        td [ title ( rec.label ++ sfx ++ " : " ++ rec.descr ) ] []
 
 
 kidsListOfTuples : Node -> List (Html Msg, Node, Bool)
@@ -369,29 +339,47 @@ kidsTupleOfLists node =
   --List.unzip (kidsListOfTuples node)
   let
     triple2htmlTuple (cont, kid, showLabel) =
-      ( mkLabel showLabel kid, cont )
+      ( mkLabel showLabel kid.rec, cont )
     tuples = List.map triple2htmlTuple (kidsListOfTuples node)
   in
     List.unzip (tuples)
 
 
 {-----------------------------------------------}
-node2Table : Node -> Html Msg
-node2Table node =
+--node2Table : Node -> Html Msg
+--node2Table node =
+--  let
+--    (cont, nd, showLabel) = viewTuple node
+--    nTable node =
+--      table [ title (node.rec.label ++ " " ++ node.rec.id) ] [
+--        tr [] [ mkLabel' showLabel node, td [] [cont] ]
+--      ]
+--  in
+--    case node.rec.value of
+--      BoolValue _ ->
+--        nTable node
+--      StringValue _ _ ->
+--        nTable node
+--      _ ->
+--        notImplemented' node "node2Table"
+
+record2Table : Record -> Html Msg
+record2Table rec =
   let
-    (cont, nd, showLabel) = viewTuple node
-    nTable node =
-      table [ title (node.rec.label ++ " " ++ node.rec.id) ] [
-        tr [] [ mkLabel showLabel node, td [] [cont] ]
+    (cont, showLabel) =
+        viewTupleOfRecord rec
+    nTable rec =
+      table [ title (rec.label ++ " " ++ rec.id) ]
+      [ tr [] [ mkLabel showLabel rec, td [] [cont] ]
       ]
   in
-    case node.rec.value of
+    case rec.value of
       BoolValue _ ->
-        nTable node
+        nTable rec
       StringValue _ _ ->
-        nTable node
+        nTable rec
       _ ->
-        notImplemented node "node2Table"
+        notImplemented rec "node2Table"
 
 -----------------------------------------------}
 
@@ -399,31 +387,55 @@ node2Table node =
 
 
 {-----------------------------------------------}
+viewTupleOfRecord : Record -> (Html Msg, Bool)
+viewTupleOfRecord rec =
+  let
+    (content, showLabel) =
+      case rec.value of
+        BoolValue flag ->
+          ( input [ type' "checkbox", checked flag, onCheck (editBool rec.id) ] []
+          , True
+          )
+        StringValue str _ ->
+          ( input [ type' "text", value str, onInput (editString rec.id) ] []
+          , True
+          )
+        _ ->
+          ( notImplemented rec "node2Table"
+          , False
+          )
+  in
+    ( content, showLabel )
+
+
 viewTuple : Node -> (Html Msg, Node, Bool)
 viewTuple node =
   let
     (content, showLabel) =
       case node.rec.value of
-        BoolValue flag ->
-          ( input [ type' "checkbox", checked flag, onCheck (editBool node.rec.id) ] []
-          , True
-          )
-        StringValue str _ ->
-          ( input [ type' "text", value str, onInput (editString node.rec.id) ] []
-          , True
-          )
+--        BoolValue flag ->
+--          ( input [ type' "checkbox", checked flag, onCheck (editBool node.rec.id) ] []
+--          , True
+--          )
+--        StringValue str _ ->
+--          ( input [ type' "text", value str, onInput (editString node.rec.id) ] []
+--          , True
+--          )
+
 --        RootCmd ->
 --          ( view node
 --          , True
 --          )
 
         --Group isVertical showLabel ->
-        Group isVertical ->
+--        Group isVertical ->
+        Group _ ->
           ( view node
           , True
           )
 
-        Switch sid ->
+--        Switch sid ->
+        Switch _ ->
           -- input [ type' "radio", checked False
           -- ] []
           ( view node
@@ -431,6 +443,9 @@ viewTuple node =
           --, node.label
           , False
           )
+
+        _ ->
+            viewTupleOfRecord node.rec
   in
     ( content, node, showLabel )
 -----------------------------------------------}
@@ -448,9 +463,16 @@ selectSwitch : Id -> Id -> Msg
 selectSwitch sid kid =
   Modify sid (Switch kid)
 
-notImplemented : Node -> String -> Html Msg
-notImplemented node errDesr =
-  div [ {-color "red"-} ] [ text ( "ERROR: " ++ errDesr ++ " NOT IMPLEMENTED: " ++ node.rec.label ++ ": " ++ ( toString node.rec.value ) ) ]
+--notImplemented' : Node -> String -> Html Msg
+--notImplemented' node errDesr =
+--  div [ {-color "red"-} ] [ text ( "ERROR: " ++ errDesr ++ " NOT IMPLEMENTED: " ++ node.rec.label ++ ": " ++ ( toString node.rec.value ) ) ]
+
+notImplemented : Record -> String -> Html Msg
+notImplemented rec errDesr =
+  div [ {-color "red"-} ]
+  [ text ( "ERROR: " ++ errDesr ++ " NOT IMPLEMENTED: "
+           ++ rec.label ++ ": " ++ ( toString rec.value ) )
+  ]
 
 {----------------------------------------------------------------
 ------------------------------------------------------------------}

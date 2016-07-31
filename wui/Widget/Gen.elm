@@ -111,54 +111,58 @@ kidsCmdletsListByIds node =
   snd ( List.unzip ( Dict.toList ( kidsCmdletsByIdDict node ) ) )
 
 
---headList l =
---    case List.head l of
---        Nothing -> []
---        Just h -> [h]
+-- UPGRADE
 
-
-upgrade : Node -> Node -> Node
+upgrade : Node -> Node -> (Node, List Record)
 upgrade defaultRoot oldRoot =
---upgradeHelper : Dict.Dict String Record -> Node -> Node
---upgradeHelper oldNodes_m node =
     let
         oldNodes_m =
             nodeTree2recordByIdDict oldRoot
+        defaultNodes_m =
+            nodeTree2recordByIdDict defaultRoot
+--        defaultNodes_itl =
+--            nodeTree2recordByIdTupList defaultRoot
+        oldNodes_itl =
+            nodeTree2recordByIdTupList oldRoot
+        oldIds =
+            Dict.keys oldNodes_m
+        missingNodes =
+            List.concat
+                <|  List.map (\
+                        (oldId, oldNode) ->
+                            case Dict.get oldId defaultNodes_m of
+                                Nothing -> [oldNode]
+                                Just _  -> []
+                    ) oldNodes_itl
     in
-        upgradeHelper oldNodes_m defaultRoot
+        ( upgradeHelper oldNodes_m defaultRoot
+        , missingNodes
+        )
 
 nodeTree2recordByIdDict
     : Node
     -> Dict.Dict String Record
---           { descr : String
---           , fmtr : Formatter
---           , label : String
---           , value : Value
---           , id : Id
---           }
 nodeTree2recordByIdDict root =
---    (headList nodes)
---    ++ (flatNodes )
+--    Widget.Data.Flat.flatten root
+--        |> Array.toList
+--        |> List.map (\w -> (w.rec.id, w.rec))
+    nodeTree2recordByIdTupList root
+        |> Dict.fromList
+
+nodeTree2recordByIdTupList
+    : Node
+    -> List (String, Record)
+nodeTree2recordByIdTupList root =
     Widget.Data.Flat.flatten root
         |> Array.toList
         |> List.map (\w -> (w.rec.id, w.rec))
-        |> Dict.fromList
+--        |> Dict.fromList
 
 
---upgrade : Dict.Dict (String, Record) -> Node -> Node ->   Node
---upgrade oldNodes_m defaultNode node =
+--upgradeHelper : Dict.Dict String Record -> Node -> (Node, List Node)
 upgradeHelper : Dict.Dict String Record -> Node -> Node
 upgradeHelper oldNodes_m node =
---mapUpdate : (Node -> (Node, Cmd a)) -> Node -> (Node, Cmd a)
---mapUpdate f node =
---updateSingleNode : Msg -> Node -> ( Node, Cmd Msg )
---updateSingleNode msg node =
---update : Msg -> Node -> ( Node, Cmd Msg )
---update msg node =
---  mapUpdate (updateSingleNode msg) node
     let
---        oldNodes_m =
---            nodeTree2recordByIdDict node
         newValue =
             case Dict.get node.rec.id oldNodes_m of
                 Nothing -> node.rec.value
@@ -168,8 +172,13 @@ upgradeHelper oldNodes_m node =
             { rec
             | value = newValue
             }
+--        (kids, missingNodes) =
+--            List.unzip
+--                <| List.map (upgradeHelper oldNodes_m)
+--                <| getKids node
         kids =
-            List.map (upgradeHelper oldNodes_m) <| getKids node
+            List.map (upgradeHelper oldNodes_m)
+                <| getKids node
     in
         { node
         | rec = newRecord

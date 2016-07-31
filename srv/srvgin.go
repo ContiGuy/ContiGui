@@ -676,33 +676,9 @@ func (job *Job) getFPath(baseDir string, cs string) string {
 	return jobFPath
 }
 
-//func (job *Job) toYamlScript(eh *errHandler_T) []byte {
-//	var job_yb, jobScript_b []byte
-//	eh.safe(
-//		func() { job_yb, eh.err = yaml.Marshal(job) },
-//		func() { jobScript_b = job.toScript(job_yb) },
-//	)
-//	return jobScript_b
-//}
-
 func (job *Job) toScript(job_b []byte) []byte {
 	timeStamp := "" // fmt.Sprintf("@ %v", time.Now())
 	jobScript_b := []byte(fmt.Sprintf(job.Script,
-		//	jobScript_b := []byte(fmt.Sprintf(`#!/bin/bash
-		//#
-		//# generated script - do not edit
-		//#
-		//cat <<EOYD | less
-		//#
-		//# begin:  %[1]s  %[2]s - %[3]s  %[5]s
-		//#
-
-		//%[4]s
-		//#
-		//# end:  %[1]s  %[2]s - %[3]s  %[5]s
-		//#
-		//EOYD
-		//`,
 		magicLine, job.TypeName, job.Name, job_b, job.Cmd, timeStamp))
 	return jobScript_b
 }

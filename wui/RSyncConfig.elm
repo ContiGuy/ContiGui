@@ -14,6 +14,8 @@
 
 module RSyncConfig exposing (..)
 
+--import String
+
 import Widget.Data.Type exposing (..)
 
 {--------------------------------------
@@ -57,7 +59,10 @@ init =
     -- Options 1
     options1 =
       aVertical "flags1" "Options 1" [
-        aBool  "v" "Verbose"   "increase verbosity"                            "--verbose"
+--        aBool  "v" "Verbose"   "increase verbosity"                            "--verbose"
+--flag : String -> Bool -> String -> List String -> Node
+--flag showName default descr optionNames =
+        flag "Verbose" True "increase verbosity" ["--verbose"]
       , aBool  "q" "Quiet"     "suppress non-error messages"                   "--quiet"
       , aBooT  "c" "Checksum"  "skip based on checksum, not mod-time & size"   "--checksum"
       , aBool  "a" "Archive"   "archive mode; equals -rlptgoD (no -H,-A,-X)"   "--archive"
@@ -285,7 +290,6 @@ fake =
 --------------------------------------------------------------------------------------}
 
 
-
 folder : Id -> String -> String -> Node
 folder id descr prefix =
   aString (id ++ "-F") "Folder" descr (prefix ++ "{{}}") True
@@ -346,22 +350,8 @@ locationSwitch id name =
 
 --func (job *Job) toScript(job_b []byte) []byte {
 --	timeStamp := "" // fmt.Sprintf("@ %v", time.Now())
---	jobScript_b := []byte(fmt.Sprintf(`#!/bin/bash
---#
---# generated script - do not edit
---#
---cat <<EOYD | less
---#
---# begin:  %[1]s  %[2]s - %[3]s  %[5]s
---#
---
---%[4]s
---#
---# end:  %[1]s  %[2]s - %[3]s  %[5]s
---#
---EOYD
---`,
---		magicLine, job.TypeName, job.Name, job_b, timeStamp))
+--	jobScript_b := []byte(fmt.Sprintf(job.Script,
+--		magicLine, job.TypeName, job.Name, job_b, job.Cmd, timeStamp))
 --	return jobScript_b
 --}
 

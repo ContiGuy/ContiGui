@@ -25,13 +25,14 @@ import RSyncConfig       exposing (..)
 -- MODEL
 
 type alias Model =
-  { id           : String
-  , name         : String
-  , typeName     : String
-  , script       : String
-  , node         : Node
-  , debug        : Util.Debug.Model
-  , scriptFile   : String
+  { id            : String
+  , name          : String
+  , typeName      : String
+  , script        : String
+  , node          : Node
+  , debug         : Util.Debug.Model
+  , scriptFile    : String
+  , lostFoundRecs : List Record
   }
 
 init : ( Model, Cmd msg )
@@ -41,7 +42,7 @@ init =
         node = aVertical "new-job" "new" [] <| fmtList "<<EMPTY JOB -- DON'T USE>>" ", "
     in
 --        ( Model node.rec.id node.rec.label "Empty Job Type" node Util.Debug.init
-        ( Model "" node.rec.label "Empty Job Type" defaultScript node Util.Debug.init "empty-file"
+        ( Model "" node.rec.label "Empty Job Type" defaultScript node Util.Debug.init "empty-file" []
         , Cmd.none )
 
 defaultRootNode : Node
@@ -91,10 +92,17 @@ update msg model =
               } ! []
 
             Upgrade ->
-              { model
-              | node = Widget.Gen.upgrade defaultRootNode model.node
-              , script = defaultScript
-              } ! []
+                let
+                    (node', lfRecs) =
+                        Widget.Gen.upgrade defaultRootNode model.node
+                    _ = Debug.log "lost+found" lfRecs
+                in
+                  { model
+--                  | node = Widget.Gen.upgrade defaultRootNode model.node
+                  | node = node'
+                  , script = defaultScript
+                  , lostFoundRecs = lfRecs ++ model.lostFoundRecs
+                  } ! []
 
             WidgetMsg wm ->
                 let
@@ -206,21 +214,36 @@ update msg model =
 
 view : String -> Model -> Html Msg
 view jobTypeName model =
-  div []
-  [ table []
-    [ tr [] [ td [] [ Html.App.map WidgetMsg (Widget.view model.node) ] ]
-
-    , h4 [] [ text "Details" ]
-    , tr [] [ td [] [ table []
-          [ tr [] [ td [] [ text "command:" ],     td [] [ em [] [ text <| Widget.Gen.cmdOf model.node ] ] ]
---          , tr [] [ td [] [ text "id:" ],      td [] [ em [] [ text model.id ] ] ]
-          , tr [] [ td [] [ text "script file:" ], td [] [ em [] [ text model.scriptFile ] ] ]
-          ] ] ]
-
---    , Html.App.map DebugMsg ( Util.Debug.viewDbgStr "Job" model.output model.debug )
-    , Html.App.map DebugMsg ( Util.Debug.view "Job" model.debug )
-    ]
-  ]
+    let
+        lostFound =
+            if List.length model.lostFoundRecs == 0 then
+                []
+            else
+                [ h4 [] [ text "Lost + Found" ]
+                ] ++
+                  List.map (\lfr ->
+                    Html.App.map WidgetMsg <| Widget.viewRecord (text <| toString <| lfr) lfr
+                  ) model.lostFoundRecs
+--                , tr [] [ td [] [ table []
+--                      [ tr [] [ td [] [ text "command:" ],     td [] [ em [] [ text <| Widget.Gen.cmdOf model.node ] ] ]
+--                      , tr [] [ td [] [ text "script file:" ], td [] [ em [] [ text model.scriptFile ] ] ]
+--                      ] ] ]
+--                ]
+    in
+      div []
+      [ table [] (
+        [ tr [] [ td [] [ Html.App.map WidgetMsg (Widget.view model.node) ] ]
+        ] ++ lostFound ++
+        [ h4 [] [ text "Details" ]
+        , tr [] [ td [] [ table []
+              [ tr [] [ td [] [ text "command:" ],     td [] [ em [] [ text <| Widget.Gen.cmdOf model.node ] ] ]
+              , tr [] [ td [] [ text "script file:" ], td [] [ em [] [ text model.scriptFile ] ] ]
+              ] ] ]
+--        ] ++   -- lostFound ++
+--        [ Html.App.map DebugMsg ( Util.Debug.view "Job" model.debug )
+        , Html.App.map DebugMsg ( Util.Debug.view "Job" model.debug )
+        ] )
+      ]
 
 
 
@@ -322,7 +345,7 @@ httpSend
     -> Task.Task Http.Error a
 httpSend verb decoder url body =
   let request =
-        { verb = verb   -- "POST"
+        { verb = verb
         , headers = []
         , url = url
         , body = body
@@ -332,19 +355,9 @@ httpSend verb decoder url body =
 
 
 {----------------------------------------------}
---decode : Json.Decode.Decoder node -> Json.Decode.Decoder Model
---decode decodeNode =
 decode : Json.Decode.Decoder Model
 decode =
---  { id           : String
---  , name         : String
---  , node         : Node
---  , debug        : Util.Debug.Model
---  , output       : String
---  }
     Json.Decode.succeed Model
---        |: ("json_id"   := Json.Decode.string)
---        |: ("yaml_id"   := Json.Decode.string)
         |: ("job_id"        := Json.Decode.string)
         |: ( Json.Decode.Extra.withDefault "" ("job_name"  := Json.Decode.string) )
         |: ("type_name" := Json.Decode.string)
@@ -358,6 +371,7 @@ decode =
         |: ( Json.Decode.Extra.withDefault Util.Debug.init ("debug"  := Util.Debug.decode)  )
 --        |: ( Json.Decode.Extra.withDefault "" ("output"    := Json.Decode.string))
         |: ( Json.Decode.Extra.withDefault "" ("script_fpath"  := Json.Decode.string)  )
+        |: ( Json.Decode.Extra.withDefault [] ("lost+found" := (Json.Decode.list Widget.Data.Json.decRec) ) )
 ----------------------------------------------}
 
 
@@ -371,22 +385,11 @@ encode jobTypeName model =
         ("root",      Widget.Data.Json.encodeNode model.node)
     ]
 
---    Json.Encode.object
-----        [ ("json_id",   Json.Encode.string job.jsonId)
-----        , ("yaml_id",   Json.Encode.string job.yamlId)
---        [ ("id",        Json.Encode.string job.id)
---        , ("job_name",  Json.Encode.string job.name)
---        , ("type_name", Json.Encode.string jobTypeName)
---        , ("cmd",       Json.Encode.string <| Widget.Gen.cmdOf job.node)
-----        , ("root",      encodeNode job.node)
---        , ("root",      Widget.Data.Json.encodeNode job.node)
---        ]
 
---encodeX : String -> Model -> Json.Encode.Value
 encodeX
     : String
-    -> Model  --  { a | id : String, name : String, node : Node }
-    -> List ( String, Json.Encode.Value )
+    -> Model
+    -> List (String, Json.Encode.Value)
     -> Json.Encode.Value
 encodeX jobTypeName model addFields =
     encodeNewJobOfType jobTypeName
@@ -397,18 +400,6 @@ encodeX jobTypeName model addFields =
       , ("debug",     Util.Debug.encode model.debug)
       ] ++ addFields
     )
---    Json.Encode.object (
-----        [ ("json_id",   Json.Encode.string job.jsonId)
-----        , ("yaml_id",   Json.Encode.string job.yamlId)
---        [ ("job_id",    Json.Encode.string model.id)
---        , ("job_name",  Json.Encode.string model.name)
---        , ("type_name", Json.Encode.string jobTypeName)
---        , ("cmd",       Json.Encode.string <| Widget.Gen.cmdOf model.node)
-----        , ("root",      encodeNode job.node)
-----        , ("root",      Widget.Data.Json.encodeNode job.node)
---        , ("debug",     Util.Debug.encode model.debug)
---        ] ++ addFields
---      )
 
 encodeNewJobOfType
     : String
@@ -419,14 +410,3 @@ encodeNewJobOfType jobTypeName jobFields =
         [ ("type_name", Json.Encode.string jobTypeName)
         ] ++ jobFields
       )
-----        [ ("json_id",   Json.Encode.string job.jsonId)
-----        , ("yaml_id",   Json.Encode.string job.yamlId)
---        [ ("job_id",    Json.Encode.string model.id)
---        , ("job_name",  Json.Encode.string model.name)
---        , ("type_name", Json.Encode.string jobTypeName)
---        , ("cmd",       Json.Encode.string <| Widget.Gen.cmdOf model.node)
-----        , ("root",      encodeNode job.node)
-----        , ("root",      Widget.Data.Json.encodeNode job.node)
---        , ("debug",     Util.Debug.encode model.debug)
---        ] ++ addFields
---      )
