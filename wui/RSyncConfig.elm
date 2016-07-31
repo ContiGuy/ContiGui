@@ -57,28 +57,18 @@ init =
     -- Options 1
     options1 =
       aVertical "flags1" "Options 1" [
---    options1 =
---      aVertical "flags3" "Options 3" [
---    verbose       =
         aBool  "v" "Verbose"   "increase verbosity"                            "--verbose"
---    quiet         =
       , aBool  "q" "Quiet"     "suppress non-error messages"                   "--quiet"
---    checksum      =
       , aBooT  "c" "Checksum"  "skip based on checksum, not mod-time & size"   "--checksum"
---    archive       =
       , aBool  "a" "Archive"   "archive mode; equals -rlptgoD (no -H,-A,-X)"   "--archive"
       ] (fmtList "{{}}" " ")
 
     -- Options 2
     options2 =
       aVertical "flags2" "Options 2" [
---    recursive     =
         aBooT  "r" "Recursive" "recurse into directories"                      "--recursive"
---    relative      =
       , aBool  "R" "Relative"  "use relative path names"                       "--relative"
---    backup        =
       , aBool  "b" "Backup"    "make backups (see --suffix & --backup-dir)"    "--backup"
---    update        =
       , aBool  "u" "Update"    "skip files that are newer on the receiver"     "--update"
       ] (fmtList "{{}}" " ")
 
@@ -105,49 +95,12 @@ init =
     -- Options 5
     options5 =
       aVertical "flags5" "Options 5" [
---    dirs          =
         aBool  "d" "Directories"      "transfer directories without recursing"      "--dirs"
---    links         =
       , aBool  "l" "Symlinks"         "copy symlinks as symlinks"                   "--links"
---    copyLinks     =
       , aBool  "L" "Copy Symlinks"    "transform symlink into referent file/dir"    "--copy-links"
---    copyDirLinks  =
+      , aBooT  "n" "Dry Run"          "perform a trial run with no changes made"    "--dry-run"
 --      , aBool  "k" "Copy Dirlinks"    "transform symlink to dir into referent dir"  "--copy-dirlinks"
-      , aBooT  "n" "Dry Run"          "perform a trial run with no changes made"  "--dry-run"
       ] (fmtList "{{}}" " ")
-
-
---    options1 =
---      aVertical "flags1" "Options 1" [
---        verbose
---      , quiet
---      , checksum
---      , archive
---      ] (fmtList "{{}}" " ")
---
---    options2 =
---      aVertical "flags2" "Options 2" [
---        recursive
---      , relative
---      , backup
---      , update
---      ] (fmtList "{{}}" " ")
-
---    options3 =
---      aVertical "flags3" "Options 3" [
---        times
---      , links
---      , copyLinks
---      , copyDirLinks
---      ] (fmtList "{{}}" " ")
-
---    options5 =
---      aVertical "flags4" "Options 4" [
---        dirs
---      , links
---      , copyLinks
---      , copyDirLinks
---      ] (fmtList "{{}}" " ")
 
     options =
       aHorizontal "opts" "Options" [

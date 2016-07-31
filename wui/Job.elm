@@ -31,6 +31,7 @@ type alias Model =
   , script       : String
   , node         : Node
   , debug        : Util.Debug.Model
+  , scriptFile   : String
   }
 
 init : ( Model, Cmd msg )
@@ -40,7 +41,7 @@ init =
         node = aVertical "new-job" "new" [] <| fmtList "<<EMPTY JOB -- DON'T USE>>" ", "
     in
 --        ( Model node.rec.id node.rec.label "Empty Job Type" node Util.Debug.init
-        ( Model "" node.rec.label "Empty Job Type" defaultScript node Util.Debug.init
+        ( Model "" node.rec.label "Empty Job Type" defaultScript node Util.Debug.init "empty-file"
         , Cmd.none )
 
 defaultRootNode : Node
@@ -204,9 +205,9 @@ view jobTypeName model =
 
     , h4 [] [ text "Details" ]
     , tr [] [ td [] [ table []
-          [ tr [] [
-            td [] [ text "command:" ], td [] [ em [] [ text <| Widget.Gen.cmdOf model.node ] ] ]
-          , tr [] [ td [] [ text "id:" ],      td [] [ em [] [ text model.id ] ] ]
+          [ tr [] [ td [] [ text "command:" ],     td [] [ em [] [ text <| Widget.Gen.cmdOf model.node ] ] ]
+--          , tr [] [ td [] [ text "id:" ],      td [] [ em [] [ text model.id ] ] ]
+          , tr [] [ td [] [ text "script file:" ], td [] [ em [] [ text model.scriptFile ] ] ]
           ] ] ]
 
 --    , Html.App.map DebugMsg ( Util.Debug.viewDbgStr "Job" model.output model.debug )
@@ -389,6 +390,7 @@ decode =
 --        |: ("output"    := Json.Decode.string)
         |: ( Json.Decode.Extra.withDefault Util.Debug.init ("debug"  := Util.Debug.decode)  )
 --        |: ( Json.Decode.Extra.withDefault "" ("output"    := Json.Decode.string))
+        |: ( Json.Decode.Extra.withDefault "" ("script_fpath"  := Json.Decode.string)  )
 ----------------------------------------------}
 
 
