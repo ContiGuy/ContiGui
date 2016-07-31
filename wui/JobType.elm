@@ -89,30 +89,8 @@ update msg model =
               let
 --                _ = Debug.log ("JobType.update:JobMsg " ++ (toString model.jobIdNames)) jmsg
 --                _ = Debug.log ("JobType.update:JobMsg") jmsg
-                ( job', jmsg' ) = Job.update jmsg model.job
-
---                otherId (id, n) =
---                    id /= model.job.id && id /= job'.id
---
---                validId (id, n) =
---                    id /= ""
---
---                otherJobIdNames =
---                    List.filter otherId model.jobIdNames
---                _ = Debug.log "JobType.update:JobMsg.otherJobIdNames" otherJobIdNames
---
---                newJobIdNames =
---                    if model.job.id == job'.id then
---                        (job'.id, job'.name) :: otherJobIdNames
---                    else
---                        (job'.id, job'.name)
---                            :: (model.job.id, model.job.name)
---                            :: otherJobIdNames
---                _ = Debug.log "JobType.update:JobMsg.newJobIdNames" newJobIdNames
---
---                validJobIdNames =
---                    List.filter validId newJobIdNames
---                _ = Debug.log "JobType.update:JobMsg.validJobIdNames" validJobIdNames
+                ( job', jmsg' ) =
+                    Job.update jmsg model.job
 
                 validJobIdNames =
                     newJobIdNames model job'
@@ -137,18 +115,7 @@ update msg model =
               updateCombo cbmsg model
 
             LoadJobs ->
---                model ! [ loadJobs model ]
                 model ! [ loadJobs ]
-
---                let
---                  loadJobsCmdMsg =
---                    loadJobs model
---                in
---                  { model
---                  | output = "JobType.LoadJobs ..."
---                  , lastOk = Just "loading jobs ..."
---                  }
---                  ! [ loadJobsCmdMsg ]   -- Cmd.batch [ saveCmdMsg, xCmdMsg ] ]
 
             LoadJobsFail err ->  -- Http.Error
                 let
@@ -208,9 +175,6 @@ updateCombo cbmsg model =
                 )
             ComboBox.FieldChanged s ->
                 model.job ! [ Cmd.Extra.message <| JobMsg <| Job.Save model.name "" ]
---                ( model.job
---                , Cmd.map JobMsg <| Cmd.batch [ Cmd.Extra.message <| Job.Rename s ]
---                )
             ComboBox.Select s ->
               let
                 newJobId = findJobId s model
@@ -253,10 +217,10 @@ view model =
       [ h2 [] [ text model.name ]
       , table []
         [ tr []
-          [ td [] [ button [ Html.Events.onClick NewJob ] [ text "New"] ]
-          , td [] [ button [ Html.Attributes.disabled True ] [ text "Clone"] ]
---          , td [] [ button [ Html.Attributes.disabled True ] [ text "Save"] ]
+          [ td [] [ button [ Html.Events.onClick NewJob ]                              [ text "New"] ]
+          , td [] [ button [ Html.Attributes.disabled True ]                           [ text "Clone"] ]
           , td [] [ button [ Html.Events.onClick <| JobMsg <| Job.Save model.name "" ] [ text "Save"] ]
+          , td [] [ button [ Html.Events.onClick <| JobMsg <| Job.Upgrade ]            [ text "Upgrade"] ]
           ]
         ]
 

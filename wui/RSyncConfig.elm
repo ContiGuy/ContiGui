@@ -372,7 +372,11 @@ script =
 # generated script - do not edit
 #
 
-%[5]s ||
+%[5]s 2>&1 | tee "%[2]s-%[3]s.log"
+RET=$?
+
+echo return=$RET
+exit $RET
 
 cat <<EOYD | less
 #

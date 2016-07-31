@@ -59,6 +59,7 @@ defaultScript =
 type Msg
   = Rename String
   | New String
+  | Upgrade
   | Save String String
   | SaveSucceed Model
   | SaveFail Http.Error
@@ -87,6 +88,11 @@ update msg model =
             Rename newName ->
               { model
               | name = newName
+              } ! []
+
+            Upgrade ->
+              { model
+              | node = Widget.Gen.upgrade defaultRootNode model.node
               } ! []
 
             WidgetMsg wm ->
@@ -219,11 +225,6 @@ view jobTypeName model =
 
 -- Helpers
 
---saveLoadJob : String -> Model -> Cmd Msg
---saveLoadJob jobTypeName model =
---    saveLoadJobCall jobTypeName model
---        |> Task.perform SaveFail SaveSucceed
-
 newJob : String -> Model -> Cmd Msg
 newJob jobTypeName model =
 --  let
@@ -237,56 +238,42 @@ newJobCall : String -> Model -> Task.Task Http.Error Model
 newJobCall jobTypeName model =
   let
     url = "/jobs/RSync"
-    body_s =
+--    (nodes, encode) =
+--        if model.id == "" then
+--            ( []
+--            , encodeNewJobOfType jobTypeName
+--            )
+--        else
+--            ( [ ("root", Widget.Data.Json.encodeNode model.node) ]
+--            , encodeX jobTypeName model
+--            )
+    (toJsonString, nodes) =
         if model.id == "" then
-            ( encodeNewJobOfType jobTypeName
-                [ ("default_root",      Widget.Data.Json.encodeNode defaultRootNode)
-                ]
-                |> Json.Encode.encode 2
---            , Http.post
-            )
+            ( encodeNewJobOfType jobTypeName, [] )
         else
---            ( encode jobTypeName model
             ( encodeX jobTypeName model
-                [ ("root",          Widget.Data.Json.encodeNode model.node)
-                , ("default_root",  Widget.Data.Json.encodeNode defaultRootNode)
-                ]
-                |> Json.Encode.encode 2
---            , Http.put
+            , [ ("root", Widget.Data.Json.encodeNode model.node) ]
             )
+    body_s =
+--        toJsonString ( ("default_root", Widget.Data.Json.encodeNode defaultRootNode) :: nodes )
+        toJsonString
+            ( ("default_root", Widget.Data.Json.encodeNode defaultRootNode) :: nodes )
+            |> Json.Encode.encode 2
+--        if model.id == "" then
+--            ( encodeNewJobOfType jobTypeName
+--                [ ("default_root",      Widget.Data.Json.encodeNode defaultRootNode)
+--                ]
+--                |> Json.Encode.encode 2
+--            )
+--        else
+--            ( encodeX jobTypeName model
+--                [ ("root",          Widget.Data.Json.encodeNode model.node)
+--                , ("default_root",  Widget.Data.Json.encodeNode defaultRootNode)
+--                ]
+--                |> Json.Encode.encode 2
+--            )
   in
     Http.post decode url (Http.string body_s)
-
---newJobCall : String -> Model -> Task.Task Http.Error Model
---newJobCall jobTypeName model =
---  let
---    url = "/jobs/RSync"
---    body_s =
---      encodeJobX jobTypeName model
-----        encodeNewJobOfType jobTypeName
---        [ ("default_root",      Widget.Data.Json.encodeNode defaultRootNode)
---        ]
---        |> Json.Encode.encode 2
---  in
---    Http.post decode url (Http.string body_s)
-
---newJobCall : String -> Model -> Task.Task Http.Error Model
---newJobCall jobTypeName model =
---  let
---    url = "/jobs/RSync"
---    body_s =
---      encodeJobX jobTypeName model
-----        encodeNewJobOfType jobTypeName
---        [ ("default_root",      Widget.Data.Json.encodeNode defaultRootNode)
---        ]
---        |> Json.Encode.encode 2
---  in
---    Http.post decode url (Http.string body_s)
-
---saveLoadJob : String -> Model -> Cmd Msg
---saveLoadJob jobTypeName model =
---    saveLoadJobCall jobTypeName model
---        |> Task.perform SaveFail SaveSucceed
 
 loadJob : String -> String -> Cmd Msg
 loadJob jobTypeName newJobId =
@@ -298,13 +285,9 @@ loadJob jobTypeName newJobId =
 
 
 loadJobCall : String -> String -> Task.Task Http.Error Model
---saveLoadJobCall jobTypeName job =
 loadJobCall jobTypeName newJobId =
   let
     url = "/jobs/RSync" ++ "/" ++ newJobId
---    body_s =
---      encode jobTypeName model
---        |> Json.Encode.encode 2
   in
     Http.get decode url
 
@@ -317,9 +300,7 @@ saveLoadJob jobTypeName model newJobId =
         |> Task.perform SaveFail SaveSucceed
 
 
---saveLoadJobCall : String -> Model -> Task.Task (HttpBuilder.Error String) (HttpBuilder.Response (Model))
 saveLoadJobCall : String -> Model -> String -> Task.Task Http.Error Model
---saveLoadJobCall jobTypeName job =
 saveLoadJobCall jobTypeName model newJobId =
   let
     url = "/jobs/RSync" ++ "/" ++ model.id ++
@@ -327,9 +308,6 @@ saveLoadJobCall jobTypeName model newJobId =
         else "?newJobId=" ++ newJobId
       )
     body_s =
---      initJob jobName model
---      job
---        |>
       encode jobTypeName model
         |> Json.Encode.encode 2
   in
@@ -350,18 +328,6 @@ httpSend verb decoder url body =
         }
   in
       Http.fromJson decoder (Http.send Http.defaultSettings request)
-
-
-----saveLoadJobCall : Json.Decode.Decoder node -> String -> Model -> Task.Task (HttpBuilder.Error String) (HttpBuilder.Response (Model))
-----saveLoadJobCall decodeNode jobTypeName job =
---saveLoadJobCall : String -> Model -> Task.Task (HttpBuilder.Error String) (HttpBuilder.Response (Model))
---saveLoadJobCall jobTypeName job =
---  HttpBuilder.post "/jobs/RSync"
---    |> withJsonBody (encodeJob jobTypeName job)
---    |> withHeader "Content-Type" "application/json"
---    |> withTimeout (10 * Time.second)
---    |> withCredentials
---    |> send (jsonReader (decodeJob)) stringReader
 
 
 {----------------------------------------------}

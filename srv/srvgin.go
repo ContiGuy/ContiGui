@@ -128,6 +128,17 @@ func (job *Job) Check(jobTypeExpected string, jobIdExpected string) error {
 			job.TypeName, job.Id)
 		return errors.New(msg)
 	}
+
+	recordsById_m := make(map[string]*Wrap)
+	for _ /*wrap_i*/, wrap := range job.Nodes {
+		_, idKnown := recordsById_m[wrap.Rec.Id]
+		if idKnown {
+			msg := fmt.Sprintf("CORRUPT job: id '%s' is DUPLICATE",
+				wrap.Rec.Id)
+			return errors.New(msg)
+		}
+		recordsById_m[wrap.Rec.Id] = &wrap
+	}
 	return nil
 }
 
