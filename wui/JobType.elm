@@ -1,7 +1,7 @@
 module JobType exposing (..)
 
 import Html            exposing (..)
-import Html.Attributes
+--import Html.Attributes
 import Html.App
 import Html.Events
 import Http
@@ -218,7 +218,8 @@ view model =
       , table []
         [ tr []
           [ td [] [ button [ Html.Events.onClick NewJob ]                              [ text "New"] ]
-          , td [] [ button [ Html.Attributes.disabled True ]                           [ text "Clone"] ]
+--          , td [] [ button [ Html.Attributes.disabled True ]                           [ text "Clone"] ]
+          , td [] [ button [ Html.Events.onClick <| JobMsg <| Job.Clone ]              [ text "Clone"] ]
           , td [] [ button [ Html.Events.onClick <| JobMsg <| Job.Save model.name "" ] [ text "Save"] ]
           , td [] [ button [ Html.Events.onClick <| JobMsg <| Job.Upgrade ]            [ text "Upgrade"] ]
           ]

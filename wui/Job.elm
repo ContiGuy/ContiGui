@@ -50,6 +50,21 @@ defaultRootNode =
     RSyncConfig.init
 --    RSyncConfig.fake
 
+defaultRootEncTuple : ( String, Json.Encode.Value )
+defaultRootEncTuple =
+--    ("default_root", Widget.Data.Json.encodeNode defaultRootNode)
+--    encTuple "default_root" defaultRootNode
+    encDefaultRootTuple defaultRootNode
+
+encDefaultRootTuple : Node -> ( String, Json.Encode.Value )
+encDefaultRootTuple node =
+--    ("default_root", Widget.Data.Json.encodeNode defaultRootNode)
+    encTuple "default_root" node
+
+encTuple : String -> Node -> ( String, Json.Encode.Value )
+encTuple name node =
+    (name, Widget.Data.Json.encodeNode node)
+
 defaultScript : String
 defaultScript =
     RSyncConfig.script
@@ -61,6 +76,7 @@ type Msg
   = Rename String
   | New String
   | Upgrade
+  | Clone
   | Save String String
   | SaveSucceed Model
   | SaveFail Http.Error
@@ -78,13 +94,23 @@ update msg model =
           case msg of
             New jobTypeName ->
                 let
-                    sljCmd = newJob jobTypeName model
+                    njCmd =
+                        newJob jobTypeName model defaultRootEncTuple ""
 --                    _ = Debug.log "Job.update:newJob" sljCmd
                 in
                     model !
-                    [ sljCmd
+                    [ njCmd
 --                    , Cmd.Extra.message <| DebugMsg <| Util.Debug.Change <|"Job.New [" ++ jobTypeName ++ "]"
                     ]
+
+            Clone ->
+                let
+                    cjCmd =
+                        newJob model.typeName model
+                            (encDefaultRootTuple model.node) model.name
+--                    _ = Debug.log "Job.update:newJob" sljCmd
+                in
+                    model ! [ cjCmd ]
 
             Rename newName ->
               { model
@@ -98,11 +124,11 @@ update msg model =
                     _ = Debug.log "lost+found" lfRecs
                 in
                   { model
---                  | node = Widget.Gen.upgrade defaultRootNode model.node
                   | node = node'
                   , script = defaultScript
                   , lostFoundRecs = lfRecs ++ model.lostFoundRecs
-                  } ! []
+                  } !
+                  [ Cmd.Extra.message <| Save "" "" ]
 
             WidgetMsg wm ->
                 let
@@ -249,19 +275,26 @@ view jobTypeName model =
 
 -- Helpers
 
-newJob : String -> Model -> Cmd Msg
-newJob jobTypeName model =
+newJob : String -> Model -> ( String, Json.Encode.Value ) -> String -> Cmd Msg
+newJob jobTypeName model defRootEncTuple newJobName =
 --  let
 --    _ = Debug.log "Job.newJob" model
 --  in
-    newJobCall jobTypeName model
+    newJobCall jobTypeName model defRootEncTuple newJobName
         |> Task.perform SaveFail SaveSucceed
 
 
-newJobCall : String -> Model -> Task.Task Http.Error Model
-newJobCall jobTypeName model =
+--saveLoadJobCall : String -> Model ->  String -> Task.Task Http.Error Model
+--loadJobCall :     String ->           String -> Task.Task Http.Error Model
+--newJobCall :      String -> Model ->            Task.Task Http.Error Model
+
+newJobCall : String -> Model -> ( String, Json.Encode.Value ) -> String -> Task.Task Http.Error Model
+newJobCall jobTypeName model defRootEncTuple newJobName =
   let
-    url = "/jobs/RSync"
+    url = "/jobs/RSync" ++
+        ( if newJobName == "" then ""
+          else "?newJobName=" ++ newJobName
+        )
 --    (nodes, encode) =
 --        if model.id == "" then
 --            ( []
@@ -271,7 +304,10 @@ newJobCall jobTypeName model =
 --            ( [ ("root", Widget.Data.Json.encodeNode model.node) ]
 --            , encodeX jobTypeName model
 --            )
-    (toJsonString, nodes) =
+
+--    defaultRootEncTuple =
+--        ("default_root", Widget.Data.Json.encodeNode defaultRootNode)
+    (toJsonString, extraNodes) =
         if model.id == "" then
             ( encodeNewJobOfType jobTypeName, [] )
         else
@@ -281,7 +317,8 @@ newJobCall jobTypeName model =
     body_s =
 --        toJsonString ( ("default_root", Widget.Data.Json.encodeNode defaultRootNode) :: nodes )
         toJsonString
-            ( ("default_root", Widget.Data.Json.encodeNode defaultRootNode) :: nodes )
+--            ( ("default_root", Widget.Data.Json.encodeNode defaultRootNode) :: extraNodes )
+            ( defRootEncTuple :: extraNodes )
             |> Json.Encode.encode 2
 --        if model.id == "" then
 --            ( encodeNewJobOfType jobTypeName

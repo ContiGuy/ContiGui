@@ -332,6 +332,7 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 	var (
 		jobTypeName = c.Param("jobType")
 		newJobId    = c.Query("newJobId")
+		newJobName  = c.Query("newJobName")
 	)
 	log.Info("job post", "type", jobTypeName, "new-id", newJobId)
 	if newJobId != "" {
@@ -356,6 +357,7 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 	newJob := Job{
 		TypeName: jobTypeName,
 		Id:       "default",
+		Name:     newJobName,
 	}
 	defaultJob, err := newJob.loadYamlScript(eh, baseDir)
 
