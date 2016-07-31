@@ -62,7 +62,7 @@ type Msg
   | DebugMsg Util.Debug.Msg
   | LoadJobs
   | LoadJobsFail Http.Error
-  | LoadJobsSucceed Model  --  (List Model)
+  | LoadJobsSucceed Model
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -88,7 +88,7 @@ update msg model =
             JobMsg jmsg ->
               let
 --                _ = Debug.log ("JobType.update:JobMsg " ++ (toString model.jobIdNames)) jmsg
-                _ = Debug.log ("JobType.update:JobMsg") jmsg
+--                _ = Debug.log ("JobType.update:JobMsg") jmsg
                 ( job', jmsg' ) = Job.update jmsg model.job
 
 --                otherId (id, n) =
@@ -158,11 +158,11 @@ update msg model =
 
             LoadJobsSucceed jobType ->  -- (List Model)
                 let
-                    _ = Debug.log "JobType.LoadJobsSucceed" jobType
+--                    _ = Debug.log "JobType.LoadJobsSucceed" jobType
 
                     loadedJobNames =
                         List.map (\ (id, n) -> n) jobType.jobIdNames
-                    _ = Debug.log "JobType.LoadJobsSucceed:loadedJobNames" loadedJobNames
+--                    _ = Debug.log "JobType.LoadJobsSucceed:loadedJobNames" loadedJobNames
 
                     jobLoadMsgs =
                         case List.head jobType.jobIdNames of
@@ -214,7 +214,7 @@ updateCombo cbmsg model =
             ComboBox.Select s ->
               let
                 newJobId = findJobId s model
-                _ = Debug.log "JobType.updateCombo:ComboBox.Select" (model.combo.current ++ " (" ++ model.job.id ++ ")" ++ " -->> " ++ s ++ " (" ++ newJobId ++ ")")
+--                _ = Debug.log "JobType.updateCombo:ComboBox.Select" (model.combo.current ++ " (" ++ model.job.id ++ ")" ++ " -->> " ++ s ++ " (" ++ newJobId ++ ")")
               in
                 ( model.job
                 , Cmd.map JobMsg <| Cmd.batch [ Cmd.Extra.message <| Job.Save model.name newJobId ]
@@ -283,7 +283,7 @@ newJobIdNames model job' =
 
     otherJobIdNames =
         List.filter otherId model.jobIdNames
-    _ = Debug.log "JobType.newJobIdNames:otherJobIdNames" otherJobIdNames
+--    _ = Debug.log "JobType.newJobIdNames:otherJobIdNames" otherJobIdNames
 
     newJobIdNames =
         if model.job.id == job'.id then
@@ -292,11 +292,11 @@ newJobIdNames model job' =
             (job'.id, job'.name)
                 :: (model.job.id, model.job.name)
                 :: otherJobIdNames
-    _ = Debug.log "JobType.newJobIdNames:newJobIdNames" newJobIdNames
+--    _ = Debug.log "JobType.newJobIdNames:newJobIdNames" newJobIdNames
 
     validJobIdNames =
         List.filter validId newJobIdNames
-    _ = Debug.log "JobType.newJobIdNames:validJobIdNames" validJobIdNames
+--    _ = Debug.log "JobType.newJobIdNames:validJobIdNames" validJobIdNames
   in
     validJobIdNames
 
@@ -305,7 +305,8 @@ newJobIdNames model job' =
 loadJobs : Cmd Msg
 loadJobs =
   let
-    url = Debug.log "loading jobs from" "/jobs/RSync"
+--    url = Debug.log "loading jobs from" "/jobs/RSync"
+    url = "/jobs/RSync"
     httpCall = Http.get decode url
   in
     Task.perform LoadJobsFail LoadJobsSucceed httpCall

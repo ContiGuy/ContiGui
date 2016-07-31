@@ -76,7 +76,7 @@ update msg model =
           case msg of
             New jobTypeName ->
                 let
-                    sljCmd = newJob jobTypeName model   -- newJobId
+                    sljCmd = newJob jobTypeName model
 --                    _ = Debug.log "Job.update:newJob" sljCmd
                 in
                     model !
@@ -107,7 +107,7 @@ update msg model =
                         if jobTypeName == "" then model.typeName
                         else jobTypeName
                     sljCmd = saveLoadJob jobType model newJobId
-                    _ = Debug.log "Job.update:saveLoadJob" sljCmd
+--                    _ = Debug.log "Job.update:saveLoadJob" sljCmd
                 in
                     { model
                     | typeName = jobType
@@ -142,7 +142,7 @@ update msg model =
                         if jobTypeName == "" then model.typeName
                         else jobTypeName
                     ljCmd = loadJob jobType newJobId
-                    _ = Debug.log "Job.update:loadJob" ljCmd
+--                    _ = Debug.log "Job.update:loadJob" ljCmd
                 in
                     { model
                     | typeName = jobType
@@ -226,9 +226,9 @@ view jobTypeName model =
 
 newJob : String -> Model -> Cmd Msg
 newJob jobTypeName model =
-  let
-    _ = Debug.log "Job.newJob" model
-  in
+--  let
+--    _ = Debug.log "Job.newJob" model
+--  in
     newJobCall jobTypeName model
         |> Task.perform SaveFail SaveSucceed
 
@@ -310,9 +310,9 @@ loadJobCall jobTypeName newJobId =
 
 saveLoadJob : String -> Model -> String -> Cmd Msg
 saveLoadJob jobTypeName model newJobId =
-  let
-    _ = Debug.log "Job.saveLoadJob" model
-  in
+--  let
+--    _ = Debug.log "Job.saveLoadJob" model
+--  in
     saveLoadJobCall jobTypeName model newJobId
         |> Task.perform SaveFail SaveSucceed
 
