@@ -24,7 +24,7 @@ type Tree = Kids (List Node)
 
 type Value
   = BoolValue Bool
-  | StringValue String
+  | StringValue String Bool
 --  | RootCmd
   | Group Orientation
   | Switch Id
@@ -117,10 +117,10 @@ aBooT : Id -> String -> String -> String -> Node
 aBooT id label descr cmdTrue =
   aBoolX (id ++ "T") label descr True cmdTrue ""
 
-aString : Id -> String -> String -> String -> Node
-aString id label descr cmdFmt =
+aString : Id -> String -> String -> String -> Bool -> Node
+aString id label descr cmdFmt required =
   let
-    strValue = StringValue (validateFormatForParam cmdFmt)
+    strValue = StringValue (validateFormatForParam cmdFmt) required
   in
     Node
       ( Record (id ++ "_S") label descr strValue (StringFmtr cmdFmt) )

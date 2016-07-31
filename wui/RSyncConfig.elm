@@ -281,19 +281,19 @@ fake =
 
 folder : Id -> String -> String -> Node
 folder id descr prefix =
-  aString (id ++ "-F") "Folder" descr (prefix ++ "{{}}")
+  aString (id ++ "-F") "Folder" descr (prefix ++ "{{}}") True
 
 host : String -> String -> Node
 host id descr =
-  aString (id ++ "-H") "Host" descr "{{}}"
+  aString (id ++ "-H") "Host" descr "{{}}" True
 
 user : String -> String -> Node
 user id descr =
-  aString (id ++ "-U") "User" descr "{{}}@"
+  aString (id ++ "-U") "User" descr "{{}}@" False
 
 nwport : String -> String -> Node
 nwport id descr =
-  aString (id ++ "-P") "Port" descr ":{{}}"
+  aString (id ++ "-P") "Port" descr ":{{}}" False
 
 localFolder : String -> Node
 localFolder id =

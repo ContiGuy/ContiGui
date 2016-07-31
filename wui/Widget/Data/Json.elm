@@ -46,8 +46,11 @@ encodeValue v =
   case v of
     BoolValue b ->
       Json.Encode.object [ ("bool", Json.Encode.bool b ) ]
-    StringValue s ->
-      Json.Encode.object [ ("string", Json.Encode.string s ) ]
+    StringValue s required ->
+      Json.Encode.object
+      [ ("string", Json.Encode.string s )
+      , ("required", Json.Encode.bool required )
+      ]
 --    RootCmd ->
 --      --Json.Encode.object [ ("root", Json.Encode.null ) ]
 --      Json.Encode.object [ ("root", Json.Encode.string "RootCmd" ) ]
@@ -75,7 +78,9 @@ decodeValue : Json.Decode.Decoder Value
 decodeValue =
   Json.Decode.oneOf [
     Json.Decode.object1 BoolValue ( "bool" := Json.Decode.bool )
-  , Json.Decode.object1 StringValue ( "string" := Json.Decode.string )
+  , Json.Decode.object2 StringValue
+    ( "string"   := Json.Decode.string )
+    ( "required" := Json.Decode.bool )
   --, Json.Decode.object1 identity ( "root" := Json.Decode.null RootCmd )
 --  , Json.Decode.object1 rootCmd ( "root" := Json.Decode.string )
   --, Json.Decode.string ( null RootCmd )

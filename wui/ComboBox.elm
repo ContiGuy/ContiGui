@@ -284,37 +284,36 @@ viewField model =
     (styles, err) =
         if model.errMsg == "" then
             ([], [])
---            Html.div [] []
         else
-            ( [("color", "red")],
-              [ Html.label [ Html.Attributes.style [("color", "red")] ]
+            ( [ ("color", "red") ]
+            , [ Html.label [ Html.Attributes.style [("color", "red")] ]
                 [ Html.text model.errMsg ]
-            ] )
+              ]
+            )
     style = Html.Attributes.style styles
   in
 {-------------------------------------------------------------------
 -------------------------------------------------------------------}
     Html.div []
     ( [ Html.input
-    [ Html.Attributes.type' "text"
---    , Html.Attributes.value model.editField
-    , Html.Attributes.value model.current
-    , Html.Events.onInput UpdateField
-    --, disabled ( not currentIsEmpty )
-    , Html.Attributes.disabled <| not model.mutable
-    , Html.Attributes.autofocus True
-    , style
+        [ Html.Attributes.type' "text"
+        , Html.Attributes.value model.current
+        , Html.Events.onInput UpdateField
+        --, disabled ( not currentIsEmpty )
+        , Html.Attributes.disabled <| not model.mutable
+        , Html.Attributes.autofocus True
+        , style
 
-    --, placeholder "What needs to be done?"
-    --, name "newTodo"
-    --, onInput UpdateField
-    --, onEnter Add
+        --, placeholder "What needs to be done?"
+        --, name "newTodo"
+        --, onInput UpdateField
+        --, onEnter Add
 
-    , Html.Events.onBlur <| FieldChanged model.current
-    ]
-    [ -- Html.text model.errMsg
---      err
-    ] ] ++ err )
+        , Html.Events.onBlur <| FieldChanged model.current
+        ]
+        []
+      ] ++ err
+    )
 
 
 
@@ -328,8 +327,8 @@ viewDbg model =
       else
         Html.div [] []
   in
-      Html.div [] [
-        Html.label [] [ Html.text "debug" ]
+      Html.div []
+      [ Html.label [] [ Html.text "debug" ]
       , Html.input [
           Html.Attributes.type' "checkbox"
           , Html.Attributes.checked model.debug

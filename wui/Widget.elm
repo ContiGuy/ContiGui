@@ -219,11 +219,11 @@ append3Tuple tuple3 listsTuple =
 valueUpdateRequiresSaving : Value -> Bool
 valueUpdateRequiresSaving value =
   case value of
-    BoolValue _   ->   True
-    StringValue _ ->   False
+    BoolValue _     ->   True
+    StringValue _ _ ->   False
 --    RootCmd       ->   False
-    Group _       ->   False
-    Switch _      ->   True
+    Group _         ->   False
+    Switch _        ->   True
 
 
 -- VIEW
@@ -243,7 +243,7 @@ view node =
       -- node2TR node
       node2Table node
 
-    StringValue _ ->
+    StringValue _ _ ->
       -- node2TR node
       node2Table node
 
@@ -332,10 +332,27 @@ viewGroup orientation node =
 
 mkLabel : Bool -> Node -> Html Msg
 mkLabel showLabel node =
-  if showLabel then
-    td [ title node.rec.descr ] [ text node.rec.label ]
-  else
-    td [ title ( node.rec.label ++ ": " ++ node.rec.descr ) ] []
+    let
+        em' styles lbl =
+            em
+                [ Html.Attributes.style styles ]
+                [ text lbl ]
+        (sfx, txt) =
+            case node.rec.value of
+                StringValue s required ->
+                    if required then
+                        (" *"
+                        , em' ( if s == "" then [("color", "red")] else [] )
+                        )
+                    else
+                        ("", text)
+                _ ->
+                    ("", text)
+    in
+      if showLabel then
+        td [ title node.rec.descr ] [ txt <| node.rec.label ++ sfx ]
+      else
+        td [ title ( node.rec.label ++ sfx ++ " : " ++ node.rec.descr ) ] []
 
 
 kidsListOfTuples : Node -> List (Html Msg, Node, Bool)
@@ -366,7 +383,7 @@ node2Table node =
     case node.rec.value of
       BoolValue _ ->
         nTable node
-      StringValue _ ->
+      StringValue _ _ ->
         nTable node
       _ ->
         notImplemented node "node2Table"
@@ -386,7 +403,7 @@ viewTuple node =
           ( input [ type' "checkbox", checked flag, onCheck (editBool node.rec.id) ] []
           , True
           )
-        StringValue str ->
+        StringValue str _ ->
           ( input [ type' "text", value str, onInput (editString node.rec.id) ] []
           , True
           )
@@ -420,7 +437,7 @@ editBool id b =
 
 editString : Id -> String -> Msg
 editString id s =
-  Modify id (StringValue s)
+  Modify id (StringValue s True)
 
 selectSwitch : Id -> Id -> Msg
 selectSwitch sid kid =
