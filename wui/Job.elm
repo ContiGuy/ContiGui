@@ -25,14 +25,14 @@ import RSyncConfig       exposing (..)
 -- MODEL
 
 type alias Model =
-  { id            : String
-  , name          : String
-  , typeName      : String
-  , script        : String
-  , node          : Node
-  , debug         : Util.Debug.Model
-  , scriptFile    : String
-  , lostFoundRecs : List Record
+  { id              : String
+  , name            : String
+  , typeName        : String
+  , scriptTemplate  : String
+  , node            : Node
+  , debug           : Util.Debug.Model
+  , scriptFile      : String
+  , lostFoundRecs   : List Record
   }
 
 init : ( Model, Cmd msg )
@@ -67,7 +67,7 @@ encTuple name node =
 
 defaultScript : String
 defaultScript =
-    RSyncConfig.script
+    RSyncConfig.scriptTemplate
 
 
 -- UPDATE
@@ -125,7 +125,7 @@ update msg model =
                 in
                   { model
                   | node = node'
-                  , script = defaultScript
+                  , scriptTemplate = defaultScript
                   , lostFoundRecs = lfRecs ++ model.lostFoundRecs
                   } !
                   [ Cmd.Extra.message <| Save "" "" ]
@@ -291,6 +291,8 @@ newJob jobTypeName model defRootEncTuple newJobName =
 newJobCall : String -> Model -> ( String, Json.Encode.Value ) -> String -> Task.Task Http.Error Model
 newJobCall jobTypeName model defRootEncTuple newJobName =
   let
+    _ = Debug.log "Job.newJobCall" (jobTypeName, newJobName, model, defRootEncTuple)
+
     url = "/jobs/RSync" ++
         ( if newJobName == "" then ""
           else "?newJobName=" ++ newJobName
@@ -309,7 +311,7 @@ newJobCall jobTypeName model defRootEncTuple newJobName =
 --        ("default_root", Widget.Data.Json.encodeNode defaultRootNode)
     (toJsonString, extraNodes) =
         if model.id == "" then
-            ( encodeNewJobOfType jobTypeName, [] )
+            ( encodeNewJobOfType jobTypeName model.scriptTemplate, [] )
         else
             ( encodeX jobTypeName model
             , [ ("root", Widget.Data.Json.encodeNode model.node) ]
@@ -399,7 +401,7 @@ decode =
         |: ( Json.Decode.Extra.withDefault "" ("job_name"  := Json.Decode.string) )
         |: ("type_name" := Json.Decode.string)
 --        |: ("cmd"       := Json.Decode.string)
-        |: ( Json.Decode.Extra.withDefault defaultScript ("script"    := Json.Decode.string)  )
+        |: ( Json.Decode.Extra.withDefault defaultScript ("script_template" := Json.Decode.string)  )
 --        |: ("script"    := Json.Decode.string)
 --        |: ("root"      := decodeNode)
         |: ("root"      := Widget.Data.Json.decodeNode)
@@ -429,21 +431,22 @@ encodeX
     -> List (String, Json.Encode.Value)
     -> Json.Encode.Value
 encodeX jobTypeName model addFields =
-    encodeNewJobOfType jobTypeName
+    encodeNewJobOfType jobTypeName model.scriptTemplate
     ( [ ("job_id",    Json.Encode.string model.id)
       , ("job_name",  Json.Encode.string model.name)
-      , ("script",    Json.Encode.string model.script)
+--      , ("script_template",    Json.Encode.string model.scriptTemplate)
       , ("cmd",       Json.Encode.string <| Widget.Gen.cmdOf model.node)
       , ("debug",     Util.Debug.encode model.debug)
       ] ++ addFields
     )
 
 encodeNewJobOfType
-    : String
+    : String -> String
     -> List ( String, Json.Encode.Value )
     -> Json.Encode.Value
-encodeNewJobOfType jobTypeName jobFields =
+encodeNewJobOfType jobTypeName scriptTemplate jobFields =
     Json.Encode.object (
         [ ("type_name", Json.Encode.string jobTypeName)
+        , ("script_template",    Json.Encode.string scriptTemplate)
         ] ++ jobFields
       )

@@ -17,6 +17,7 @@ import Job
 import ComboBox
 --import Widget.Data.Json
 import Util.Debug
+import Util.Status
 
 
 -- MODEL
@@ -27,6 +28,8 @@ type alias Model =
   , job          : Job.Model
   , jobIdNames   : List (String, String)
   , combo        : ComboBox.Model
+  , action       : String
+  , status       : Util.Status.Model    -- Job.Model
   , debug        : Util.Debug.Model
   }
 
@@ -38,6 +41,8 @@ init =
 --  in
     ( Model "rsync" "RSync" defaultJob  -- job
         [] emptyComboBox   -- cb
+        "Load existing Jobs"
+        Util.Status.init
         Util.Debug.init
 --    , Cmd.none
     , loadJobs
@@ -56,10 +61,14 @@ emptyComboBox =
 
 type Msg
   = NewJob
+  | CloneJob
+  | SaveJob
+  | UpgradeJob
   | Rename String
   | JobMsg Job.Msg
   | ComboMsg ComboBox.Msg
   | DebugMsg Util.Debug.Msg
+  | StatusMsg (Util.Status.Msg)  --  Job.Model)
   | LoadJobs
   | LoadJobsFail Http.Error
   | LoadJobsSucceed Model
@@ -70,11 +79,37 @@ update msg model =
         ( model', msg' ) =
           case msg of
             NewJob ->
-                model ! [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.New model.name ]
+                { model
+--                | status = Util.Status.Status "New Job" <| Ok "creating ..."
+                | action = "Create New Job"
+                } !
+                [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.New model.name ]
+
+            CloneJob ->
+                { model
+--                | status = Util.Status.Status "New Job" <| Ok "creating ..."
+                | action = "Clone Job"
+                } !
+                [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.Clone ]
+
+            SaveJob ->
+                { model
+--                | status = Util.Status.Status "New Job" <| Ok "creating ..."
+                | action = "Save Job"
+                } !
+                [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.Save model.name "" ]
+
+            UpgradeJob ->
+                { model
+--                | status = Util.Status.Status "New Job" <| Ok "creating ..."
+                | action = "Upgrade Job"
+                } !
+                [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.Upgrade ]
 
             Rename newName ->
               { model
               | name = newName
+--              , status = Util.Status.Status "Rename Job" <| Ok "done."
               } ! []
 
             DebugMsg dbgMsg ->
@@ -101,7 +136,15 @@ update msg model =
                 newOptionsMsgs =
                     case jmsg of
                         Job.SaveSucceed _ ->
-                            [ Cmd.Extra.message <| ComboMsg <| ComboBox.NewOptions newJobNames ]
+                            [ Cmd.Extra.message <| ComboMsg <| ComboBox.NewOptions newJobNames
+                            , Cmd.Extra.message <| StatusMsg <| Util.Status.Add <| Util.Status.Status model.action
+                                                <| Ok <| "Job " ++ model.job.name ++ " saved"
+                            ]
+                        Job.SaveFail err ->
+                            [ Cmd.Extra.message <| StatusMsg <| Util.Status.Add <| Util.Status.Status model.action
+                                                <| Err <| "Failed to save Job " ++ model.job.name ++ " : "
+                                                        ++ (toString err)
+                            ]
                         _ ->
                             []
               in
@@ -115,13 +158,19 @@ update msg model =
               updateCombo cbmsg model
 
             LoadJobs ->
-                model ! [ loadJobs ]
+                { model
+--                | status = Util.Status.Status "Load Jobs" <| Ok "loading ..."
+                | action = "Loading Jobs"
+                } ! [ loadJobs ]
 
             LoadJobsFail err ->  -- Http.Error
                 let
                     _ = Debug.log "JobType.LoadJobsFail" err
                 in
-                    model ! []
+                    model !
+                    [ Cmd.Extra.message <| StatusMsg <| Util.Status.Add <| Util.Status.Status model.action
+                                        <| Err <| toString err
+                    ]
 
             LoadJobsSucceed jobType ->  -- (List Model)
                 let
@@ -140,7 +189,21 @@ update msg model =
                 in
                     jobType !
                     ( [ Cmd.Extra.message <| ComboMsg <| ComboBox.NewOptions loadedJobNames
-                    ] ++ jobLoadMsgs )
+                      ] ++ jobLoadMsgs ++
+                      [ Cmd.Extra.message <| StatusMsg <| Util.Status.Add <| Util.Status.Status model.action
+                                          <| Ok "done"
+                      ]
+                    )
+
+            StatusMsg stMsg ->
+                let
+                    (status', stMsg') =
+                        Util.Status.update stMsg model.status
+                in
+                    { model
+                    | status = status'
+                    } !
+                    [ Cmd.map StatusMsg stMsg' ]
 
 
         ( debug', dbgMsg' ) =
@@ -162,11 +225,13 @@ update msg model =
 updateCombo : ComboBox.Msg -> Model -> (Model, Cmd Msg)
 updateCombo cbmsg model =
       let
-        oldJobName = "old job " ++ (toString model.job.id) ++ ": " ++ (toString model.job.name)
-        ( cbb, cbmsg' ) = ComboBox.update cbmsg model.combo
-        msg1 = Cmd.map ComboMsg cbmsg'
-        (
-          nJob, msg2) =
+        oldJobName =
+            "old job " ++ (toString model.job.id) ++ ": " ++ (toString model.job.name)
+        ( cbb, cbmsg' ) =
+            ComboBox.update cbmsg model.combo
+--        msg1 =
+--            Cmd.map ComboMsg cbmsg'
+        (nJob, msg2) =
           (
           case cbmsg of
             ComboBox.UpdateField s ->
@@ -194,7 +259,7 @@ updateCombo cbmsg model =
         | combo = cbb
         , job = nJob
         } !
-        [ msg1
+        [ Cmd.map ComboMsg cbmsg'   -- msg1
         , msg2
         ]
 
@@ -219,18 +284,25 @@ view model =
         [ tr []
           [ td [] [ button [ Html.Events.onClick NewJob ]                              [ text "New"] ]
 --          , td [] [ button [ Html.Attributes.disabled True ]                           [ text "Clone"] ]
-          , td [] [ button [ Html.Events.onClick <| JobMsg <| Job.Clone ]              [ text "Clone"] ]
-          , td [] [ button [ Html.Events.onClick <| JobMsg <| Job.Save model.name "" ] [ text "Save"] ]
-          , td [] [ button [ Html.Events.onClick <| JobMsg <| Job.Upgrade ]            [ text "Upgrade"] ]
+--          , td [] [ button [ Html.Events.onClick <| JobMsg <| Job.Clone ]              [ text "Clone"] ]
+          , td [] [ button [ Html.Events.onClick CloneJob ]                            [ text "Clone"] ]
+--          , td [] [ button [ Html.Events.onClick <| JobMsg <| Job.Save model.name "" ] [ text "Save"] ]
+          , td [] [ button [ Html.Events.onClick SaveJob ]                             [ text "Save"] ]
+--          , td [] [ button [ Html.Events.onClick <| JobMsg <| Job.Upgrade ]            [ text "Upgrade"] ]
+          , td [] [ button [ Html.Events.onClick UpgradeJob ]                          [ text "Upgrade"] ]
           ]
         ]
-      , Html.App.map ComboMsg <| ComboBox.view ["Job"] "--" ComboBox.Select model.combo
-      , Html.App.map JobMsg   <| Job.view model.name model.job
-      , Html.App.map DebugMsg <| Util.Debug.view "JobType" model.debug
+      , Html.App.map StatusMsg <| Util.Status.view model.status
+      , Html.App.map ComboMsg  <| ComboBox.view ["Job"] "--" ComboBox.Select model.combo
+      , Html.App.map JobMsg    <| Job.view model.name model.job
+      , Html.App.map DebugMsg  <| Util.Debug.view "JobType" model.debug
       ]
 
 
 -- Helpers
+
+--jobSave jobType =
+--    JobMsg <| Job.Save jobType ""
 
 
 newJobIdNames : Model -> Job.Model -> List ( String, String )
@@ -331,9 +403,12 @@ decode =
         |: ("jobs"          := decodeJobIdNamesList)
         |: ( Json.Decode.Extra.withDefault emptyComboBox
                 ("combo"         := Json.Decode.null emptyComboBox) )
+        |: ( Json.Decode.Extra.withDefault ""
+                ("action"         := Json.Decode.string) )
+        |: ( Json.Decode.Extra.withDefault Util.Status.init
+                ("status"         := Json.Decode.null Util.Status.init) )
         |: ( Json.Decode.Extra.withDefault Util.Debug.init
                 ("debug"         := Json.Decode.null Util.Debug.init) )
-
 
 decodeJobIdNamesList : Json.Decode.Decoder (List ( String, String ))
 decodeJobIdNamesList =

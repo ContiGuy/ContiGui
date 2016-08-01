@@ -355,8 +355,8 @@ locationSwitch id name =
 --	return jobScript_b
 --}
 
-script : String
-script =
+scriptTemplate : String
+scriptTemplate =
     """#!/bin/bash
 #
 #    %[2]s - %[3]s  %[6]s
