@@ -41,6 +41,7 @@ type alias Model =
     , mutable    : Bool
     , entries    : List String
     , debug      : Bool
+    , errMsg     : String
     }
 
 {------------------------------
@@ -48,7 +49,7 @@ type alias Model =
 
 init : List String -> Model
 init entries =
-  Model "" False entries False
+  Model "" False entries False ""
 
 testInit : Model
 testInit =
@@ -77,9 +78,17 @@ update msg model =
 --        model ! []
 
     UpdateField str ->
-      { model
-      | current = str
-      } ! []
+        let
+            eMsg =
+                if List.member str model.entries then
+                    "DUCPLICATE"
+                else
+                    ""
+        in
+          { model
+          | current = str
+          , errMsg = eMsg
+          } ! []
 
     FieldChanged str ->
       { model
@@ -272,26 +281,39 @@ viewField : Model -> Html.Html Msg
 viewField model =
   let
     currentIsEmpty = String.isEmpty ( String.trim model.current )
+    (styles, err) =
+        if model.errMsg == "" then
+            ([], [])
+        else
+            ( [ ("color", "red") ]
+            , [ Html.label [ Html.Attributes.style [("color", "red")] ]
+                [ Html.text model.errMsg ]
+              ]
+            )
+    style = Html.Attributes.style styles
   in
 {-------------------------------------------------------------------
 -------------------------------------------------------------------}
-    Html.input
-    [
-      Html.Attributes.type' "text"
---    , Html.Attributes.value model.editField
-    , Html.Attributes.value model.current
-    , Html.Events.onInput UpdateField
-    --, disabled ( not currentIsEmpty )
-    , Html.Attributes.disabled <| not model.mutable
-    , Html.Attributes.autofocus True
+    Html.div []
+    ( [ Html.input
+        [ Html.Attributes.type' "text"
+        , Html.Attributes.value model.current
+        , Html.Events.onInput UpdateField
+        --, disabled ( not currentIsEmpty )
+        , Html.Attributes.disabled <| not model.mutable
+        , Html.Attributes.autofocus True
+        , style
 
-    --, placeholder "What needs to be done?"
-    --, name "newTodo"
-    --, onInput UpdateField
-    --, onEnter Add
+        --, placeholder "What needs to be done?"
+        --, name "newTodo"
+        --, onInput UpdateField
+        --, onEnter Add
 
-    , Html.Events.onBlur <| FieldChanged model.current
-    ] []
+        , Html.Events.onBlur <| FieldChanged model.current
+        ]
+        []
+      ] ++ err
+    )
 
 
 
@@ -305,8 +327,8 @@ viewDbg model =
       else
         Html.div [] []
   in
-      Html.div [] [
-        Html.label [] [ Html.text "debug" ]
+      Html.div []
+      [ Html.label [] [ Html.text "debug" ]
       , Html.input [
           Html.Attributes.type' "checkbox"
           , Html.Attributes.checked model.debug

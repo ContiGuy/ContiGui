@@ -69,9 +69,9 @@ deflatten wa =
   in
     case Array.get 0 modelWithNodes.na of
       Nothing ->
-        let
-          _ = Debug.log "deflatten: na" <| toString modelWithNodes.na
-        in
+--        let
+--          _ = Debug.log "deflatten: na" <| toString modelWithNodes.na
+--        in
           notFoundNode "Idx 0 in Array not found"
       Just node ->
         node
@@ -91,14 +91,15 @@ deflattenNodesHelper loopWrap model =
       getNodeWithDefault loopWrap.id model.na
         loopWrap.rec
 
-    logMsg =
-      "deflatten: set new node @ " ++ (toString loopWrap.id)
-    loggedNode =
-      Debug.log logMsg node
+--    logMsg =
+--      "deflatten: set new node @ " ++ (toString loopWrap.id)
+--    loggedNode =
+--      Debug.log logMsg node
 
     modelWithNode =
       { model
-      | na = Array.set loopWrap.id loggedNode model.na
+--      | na = Array.set loopWrap.id loggedNode model.na
+      | na = Array.set loopWrap.id node model.na
       }
   in
     if loopWrap.parent < 0 then
@@ -110,13 +111,14 @@ deflattenNodesHelper loopWrap model =
             <| notFoundRec "Not Yet Unwrapped"
         newParNode =
           insertKid node parNode
-        logMsg =
-          "deflatten: set new parent node @ " ++ (toString loopWrap.parent)
-        loggedParNode =
-          Debug.log logMsg newParNode
+--        logMsg =
+--          "deflatten: set new parent node @ " ++ (toString loopWrap.parent)
+--        loggedParNode =
+--          Debug.log logMsg newParNode
       in
         { modelWithNode
-        | na = Array.set loopWrap.parent loggedParNode model.na
+--        | na = Array.set loopWrap.parent loggedParNode model.na
+        | na = Array.set loopWrap.parent newParNode model.na
         }
 
 

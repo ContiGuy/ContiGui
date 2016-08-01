@@ -51,6 +51,7 @@ type (
 		YamlSha1     string                 `json:"yaml_id,omitempty"`
 		Cmd          string                 `json:"cmd,omitempty"`
 		Script       string                 `json:"script,omitempty"`
+		ScriptFPath  string                 `json:"script_fpath,omitempty"`
 		Debug        map[string]interface{} `json:"debug,omitempty"`
 		Nodes        []Wrap                 `json:"root"`
 		DefaultNodes []Wrap                 `json:"default_root,omitempty"`
@@ -126,6 +127,17 @@ func (job *Job) Check(jobTypeExpected string, jobIdExpected string) error {
 		msg := fmt.Sprintf("EMPTY job: contains no Nodes: type='%s', id='%s'",
 			job.TypeName, job.Id)
 		return errors.New(msg)
+	}
+
+	recordsById_m := make(map[string]*Wrap)
+	for _ /*wrap_i*/, wrap := range job.Nodes {
+		_, idKnown := recordsById_m[wrap.Rec.Id]
+		if idKnown {
+			msg := fmt.Sprintf("CORRUPT job: id '%s' is DUPLICATE",
+				wrap.Rec.Id)
+			return errors.New(msg)
+		}
+		recordsById_m[wrap.Rec.Id] = &wrap
 	}
 	return nil
 }
@@ -276,6 +288,7 @@ func (eh *errHandler_T) handleJobList(baseDir string, c *gin.Context) error {
 						eh.err = yaml.Unmarshal(cfg_b, &job)
 					},
 					func() {
+						job.ScriptFPath = oldJobFPath
 						if len(job.Nodes) > 0 {
 							rootNode = &job.Nodes[0]
 						}
@@ -319,6 +332,7 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 	var (
 		jobTypeName = c.Param("jobType")
 		newJobId    = c.Query("newJobId")
+		newJobName  = c.Query("newJobName")
 	)
 	log.Info("job post", "type", jobTypeName, "new-id", newJobId)
 	if newJobId != "" {
@@ -343,6 +357,7 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 	newJob := Job{
 		TypeName: jobTypeName,
 		Id:       "default",
+		Name:     newJobName,
 	}
 	defaultJob, err := newJob.loadYamlScript(eh, baseDir)
 
@@ -384,20 +399,6 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 		func() { newJob.storeYamlScript(eh, baseDir) },
 		func() { c.JSON(http.StatusCreated, newJob) },
 	)
-
-	//	eh.safe(func() {
-	//		eh.err = newJob.Check(jobTypeName, "")
-	//		//		eh.ifErr(func() {
-	//		//			if len(body_s) > 200 {
-	//		//				body_s = body_s[:200]
-	//		//			}
-	//		//			log.Warn("Job.Check failed", "body", body_s)
-	//		//		})
-	//	})
-
-	//	newJob.storeYamlScript(eh, baseDir)
-
-	//	eh.safe(func() { c.JSON(http.StatusCreated, newJob) })
 
 	eh.ifErr(func() { c.AbortWithError(http.StatusBadRequest, eh.err) })
 	return eh.err
@@ -464,126 +465,6 @@ func (eh *errHandler_T) handleJobPut(baseDir string, c *gin.Context) error {
 
 	eh.ifErr(func() { c.AbortWithError(http.StatusBadRequest, eh.err) })
 	return eh.err
-
-	//	var body_b []byte
-	//	eh.safe(func() { body_b, eh.err = ioutil.ReadAll(c.Request.Body) })
-	//	log.Info("PUTed to /job", "jobType", jobTypeName, "jobId", jobId, "bytes", len(body_b), "newJobId", newJobId)
-
-	//	var job Job
-	//	eh.safe(func() { eh.err = json.Unmarshal(body_b, &job) })
-	//	eh.safe(func() {
-	//		eh.err = job.Check(jobTypeName)
-	//		eh.ifErr(func() {
-	//			body_s := string(body_b)
-	//			if len(body_s) > 200 {
-	//				body_s = body_s[:200]
-	//			}
-	//			log.Warn("Job.Check failed", "body", body_s)
-	//		})
-	//		//		fmt.Printf("got '%s': '''%s''' from %#v\n", cmd_s, cmdRes, node)
-	//		//			fmt.Printf("got '%s': %#v: %v\n", cmd_s, job, eh.err)
-	//		//		fmt.Printf("got '%s': err=%v\n", cmd_s, eh.err)
-	//	})
-
-	//	eh.safe(func() {
-	//		job.JsonSha1, job.YamlSha1 =
-	//			eh.hashSha1(job, json.Marshal),
-	//			eh.hashSha1(job, yaml.Marshal)
-	//	})
-
-	//	var job2_yb []byte
-	//	eh.safe(func() {
-	//		job2_yb, eh.err = yaml.Marshal(job)
-	//	})
-	//	log.Info("Marshal job to YAML", "jobType", jobTypeName, "size", len(job2_yb))
-
-	//	timeStamp := "" // fmt.Sprintf("@ %v", time.Now())
-	//	jobScript_b := []byte(fmt.Sprintf(`#!/bin/bash
-	//#
-	//# generated script - do not edit
-	//#
-	//cat <<EOYD | less
-	//#
-	//# begin:  %[1]s  %[2]s - %[3]s  %[5]s
-	//#
-
-	//%[4]s
-	//#
-	//# end:  %[1]s  %[2]s - %[3]s  %[5]s
-	//#
-	//EOYD
-	//`,
-	//		magicLine, job.TypeName, job.Name, job2_yb, timeStamp))
-
-	//	cmdFName := strings.TrimSpace(strings.ToLower(job.TypeName))
-	//	cmdDir := filepath.Join(baseDir, cmdFName)
-	//	os.MkdirAll(cmdDir, 0777)
-
-	//	jobName := strings.TrimSpace(strings.ToLower(job.Name))
-	//	log.Info("generated job script",
-	//		"jobType", jobTypeName, "cmdFName", cmdFName, "cmdDir", cmdDir,
-	//		"jobName", jobName, "size", len(jobScript_b))
-
-	//	var jobFPath, cs string
-	//	eh.safe(func() {
-	//		cs = eh.hashSha1(jobScript_b, nil)[:6]
-	//		jobFName := cmdFName + "-" + jobName + "." + cs + ".cgs"
-	//		jobFPath = filepath.Join(cmdDir, jobFName)
-	//	})
-
-	//	haveToSaveJob := true
-
-	//	fInfo, err := os.Stat(jobFPath)
-	//	if err == nil && !fInfo.IsDir() {
-	//		var oldJob_b []byte
-	//		eh.safe(func() { oldJob_b, eh.err = ioutil.ReadFile(jobFPath) })
-
-	//		haveToSaveJob = bytes.Compare(jobScript_b, oldJob_b) != 0
-	//	}
-
-	//	cmdMsg := " # job already known, not saved: " + jobFPath //-job.Root.CmdLet
-	//	if haveToSaveJob {
-	//		eh.safe(func() { eh.err = ioutil.WriteFile(jobFPath, jobScript_b, 0777) })
-	//		cmdMsg = " # job saved as: " + jobFPath
-	//	}
-	//	job.Cmd += cmdMsg
-
-	//	eh.safe(func() {
-	//		eh.forAllJobs(
-	//			baseDir, cmdFName, jobName, "."+cs,
-
-	//			// cmdDir, cmdName, jobName
-	//			func(oldJobFPath string, oldJob_b []byte) error {
-	//				eh.renameToBak(cmdDir, cmdFName, jobName, oldJobFPath, oldJob_b)
-	//				return eh.err
-	//			},
-	//		)
-	//	})
-
-	//	eh.safe(func() {
-	//		//		res := gin.H{
-	//		//			"job_name": job.Name,
-	//		//			"json_id":  job.JsonSha1,
-	//		//			"yaml_id":  job.YamlSha1,
-	//		//			"cmd":      cmdMsg,
-	//		//		}
-	//		//		c.JSON(http.StatusCreated, res)
-
-	//		//		c.JSON(http.StatusCreated, job)
-
-	//		switch newJobId {
-	//		case "":
-	//		// load new default job, create a new id and return it
-	//		case job.Nodes[0].Rec.Id:
-	//			// return same job
-	//			c.JSON(http.StatusCreated, job)
-	//		default:
-	//			// try to find job with that id and load and return it
-	//		}
-	//	})
-
-	//	eh.ifErr(func() { c.AbortWithError(http.StatusBadRequest, eh.err) })
-	//	return eh.err
 }
 
 func (eh *errHandler_T) renameToBak(
@@ -679,34 +560,13 @@ func mkJobFPath(cmdDir, cmdName, jobName, toIgnore string, subdir bool) string {
 	return jobFPathX
 }
 
-//func readYamlScript(eh *errHandler_T, baseDir string, job *Job) /*[]byte*/ {
-func /*(job *Job)*/ readJsonJob(eh *errHandler_T, r io.ReadCloser) (*Job, string) {
-	var job_b /*, jobCfg_b*/ []byte
-	//	var buf bytes.Buffer
-	//	var newJob Job
-
+func readJsonJob(eh *errHandler_T, r io.ReadCloser) (*Job, string) {
+	var job_b []byte
 	defer r.Close()
-	eh.safe(
-		func() {
-			//			jobFPath := job.getFPath(baseDir, "")
-			//			job_b, eh.err = ioutil.ReadFile(jobFPath)
-			job_b, eh.err = ioutil.ReadAll(r)
-		},
-		//		func() {
-		//			jobCfg_b, eh.err = extractYamlConfig(job_b)
-		//			log.Info("extracted job config",
-		//				"job.Type", job.TypeName,
-		//				"job.Name", job.Name,
-		//				"size", len(jobCfg_b))
-		//		},
-		//		func() { eh.err = yaml.Unmarshal(jobCfg_b, &newJob) },
-	)
-	//	return newJob
-	//	return /*job.fromYamlScript*/ jobFromYamlScript(eh, job_b), string(job_b)
-	return /*job.fromYamlScript*/ jobFromScript(eh, job_b, json.Unmarshal), string(job_b)
+	eh.safe(func() { job_b, eh.err = ioutil.ReadAll(r) })
+	return jobFromScript(eh, job_b, json.Unmarshal, "json-from-wui"), string(job_b)
 }
 
-//func readYamlScript(eh *errHandler_T, baseDir string, job *Job) /*[]byte*/ {
 func (job *Job) loadYamlScript(eh *errHandler_T, baseDir string) (*Job, error) {
 	var jobCfg_b []byte
 
@@ -726,115 +586,42 @@ func (job *Job) loadYamlScript(eh *errHandler_T, baseDir string) (*Job, error) {
 				"size", len(jobCfg_b))
 		},
 	)
-	return jobFromScript(eh, jobCfg_b, yaml.Unmarshal), eh.err
+	return jobFromScript(eh, jobCfg_b, yaml.Unmarshal, jobFPath), eh.err
 }
 
-//func readYamlScript(eh *errHandler_T, baseDir string, job *Job) /*[]byte*/ {
-func /*(job *Job)*/ jobFromScript(eh *errHandler_T, job_b []byte, unmarshal func(in []byte, out interface{}) error) *Job {
-	//	var //job_b,
-	//	jobCfg_b []byte
+func jobFromScript(
+	eh *errHandler_T,
+	job_b []byte,
+	unmarshal func(in []byte, out interface{}) error,
+	jobFPath string,
+) *Job {
 	var newJob Job
 
 	//	log.Trace("jobFromScript", "job_b", string(job_b))
 
 	eh.safe(
-		//		func() {
-		//			jobFPath := job.getFPath(baseDir, "")
-		//			job_b, eh.err = ioutil.ReadFile(jobFPath)
-		//		},
-
-		//		func() {
-		//			jobCfg_b, eh.err = extractYamlConfig(job_b)
-		//			log.Info("extracted job config",
-		//				//				"job.Type", job.TypeName,
-		//				//				"job.Name", job.Name,
-		//				"size", len(jobCfg_b))
-		//		},
 		func() {
-			//			eh.err = yaml.Unmarshal(jobCfg_b, &newJob)
 			eh.err = unmarshal(job_b, &newJob)
-
 			log.Info("Unmarshaled job config",
 				"job.Type", newJob.TypeName,
 				"job.Name", newJob.Name,
 				"size", len(job_b))
 		},
-		//		func() { eh.err = newJob.Check(jobTypeName) },
-	)
-	//	eh.ifErr(func() {
-	//		body_s := string(body_b)
-	//		if len(body_s) > 200 {
-	//			body_s = body_s[:200]
-	//		}
-	//		log.Warn("Job.Check failed", "body", body_s)
-	//	})
-	//	//		fmt.Printf("got '%s': '''%s''' from %#v\n", cmd_s, cmdRes, node)
-	//	//			fmt.Printf("got '%s': %#v: %v\n", cmd_s, job, eh.err)
-	//	//		fmt.Printf("got '%s': err=%v\n", cmd_s, eh.err)
+		//	)
 
-	eh.safe(func() {
-		newJob.JsonSha1, newJob.YamlSha1 =
-			eh.hashSha1(newJob, json.Marshal),
-			eh.hashSha1(newJob, yaml.Marshal)
-	})
+		//	eh.safe(
+		func() {
+			newJob.JsonSha1, newJob.YamlSha1 =
+				eh.hashSha1(newJob, json.Marshal),
+				eh.hashSha1(newJob, yaml.Marshal)
+			newJob.ScriptFPath = jobFPath
+		},
+	)
 
 	//	log.Trace("jobFromScript", "newJob", newJob)
 
-	//	)
 	return &newJob
 }
-
-////func readYamlScript(eh *errHandler_T, baseDir string, job *Job) /*[]byte*/ {
-//func /*(job *Job)*/ jobFromYamlScript(eh *errHandler_T, job_b []byte) Job {
-//	var //job_b,
-//	jobCfg_b []byte
-//	var newJob Job
-
-//	log.Trace("jobFromYamlScript", "job_b", string(job_b))
-
-//	eh.safe(
-//		//		func() {
-//		//			jobFPath := job.getFPath(baseDir, "")
-//		//			job_b, eh.err = ioutil.ReadFile(jobFPath)
-//		//		},
-//		func() {
-//			jobCfg_b, eh.err = extractYamlConfig(job_b)
-//			log.Info("extracted job config",
-//				//				"job.Type", job.TypeName,
-//				//				"job.Name", job.Name,
-//				"size", len(jobCfg_b))
-//		},
-//		func() {
-//			eh.err = yaml.Unmarshal(jobCfg_b, &newJob)
-//			log.Info("Unmarshaled job config",
-//				"job.Type", newJob.TypeName,
-//				"job.Name", newJob.Name,
-//				"size", len(jobCfg_b))
-//		},
-//		//		func() { eh.err = newJob.Check(jobTypeName) },
-//	)
-//	//	eh.ifErr(func() {
-//	//		body_s := string(body_b)
-//	//		if len(body_s) > 200 {
-//	//			body_s = body_s[:200]
-//	//		}
-//	//		log.Warn("Job.Check failed", "body", body_s)
-//	//	})
-//	//	//		fmt.Printf("got '%s': '''%s''' from %#v\n", cmd_s, cmdRes, node)
-//	//	//			fmt.Printf("got '%s': %#v: %v\n", cmd_s, job, eh.err)
-//	//	//		fmt.Printf("got '%s': err=%v\n", cmd_s, eh.err)
-
-//	eh.safe(func() {
-//		newJob.JsonSha1, newJob.YamlSha1 =
-//			eh.hashSha1(newJob, json.Marshal),
-//			eh.hashSha1(newJob, yaml.Marshal)
-//	})
-
-//	log.Trace("jobFromYamlScript", "newJob", newJob)
-
-//	//	)
-//	return newJob
-//}
 
 func (job *Job) storeYamlScript(eh *errHandler_T, baseDir string) {
 	var job_yb, jobScript_b []byte
@@ -891,33 +678,9 @@ func (job *Job) getFPath(baseDir string, cs string) string {
 	return jobFPath
 }
 
-//func (job *Job) toYamlScript(eh *errHandler_T) []byte {
-//	var job_yb, jobScript_b []byte
-//	eh.safe(
-//		func() { job_yb, eh.err = yaml.Marshal(job) },
-//		func() { jobScript_b = job.toScript(job_yb) },
-//	)
-//	return jobScript_b
-//}
-
 func (job *Job) toScript(job_b []byte) []byte {
 	timeStamp := "" // fmt.Sprintf("@ %v", time.Now())
 	jobScript_b := []byte(fmt.Sprintf(job.Script,
-		//	jobScript_b := []byte(fmt.Sprintf(`#!/bin/bash
-		//#
-		//# generated script - do not edit
-		//#
-		//cat <<EOYD | less
-		//#
-		//# begin:  %[1]s  %[2]s - %[3]s  %[5]s
-		//#
-
-		//%[4]s
-		//#
-		//# end:  %[1]s  %[2]s - %[3]s  %[5]s
-		//#
-		//EOYD
-		//`,
 		magicLine, job.TypeName, job.Name, job_b, job.Cmd, timeStamp))
 	return jobScript_b
 }

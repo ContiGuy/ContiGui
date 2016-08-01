@@ -23,6 +23,8 @@ import (
 )
 
 var (
+	baseDir = "/tmp"
+
 	// wuiCmd represents the wui command
 	wuiCmd = &cobra.Command{
 		Use:   "wui",
@@ -30,11 +32,9 @@ var (
 		Long:  `Run a web server which presents the Web UI for conti-gui`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			baseDir := "/tmp"
+			//			baseDir := "/tmp"
 			htmlFiles_l := []string{"index.html", "wui/index.html"}
 			return srv.ServeGin(33333, baseDir, htmlFiles_l)
-
-			//			srv.ServeWui()
 		},
 	}
 )
@@ -52,4 +52,8 @@ func init() {
 	// is called directly, e.g.:
 	// wuiCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
+	//	wuiCmd.Flags().StringP("base-folder", "b", "/tmp",
+	//		"the directory where all scripts and configuration will be stored and read from")
+	wuiCmd.Flags().StringVar(&baseDir, "base-folder", baseDir,
+		"the directory where all scripts and configuration will be stored and read from")
 }

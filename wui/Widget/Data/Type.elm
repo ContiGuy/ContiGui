@@ -24,7 +24,7 @@ type Tree = Kids (List Node)
 
 type Value
   = BoolValue Bool
-  | StringValue String
+  | StringValue String Bool
 --  | RootCmd
   | Group Orientation
   | Switch Id
@@ -103,6 +103,43 @@ aSwitch id label kids_l =
       ( Record (id ++ "-SW") label "a switch" (Switch fkid) SelectedKidFmtr )
       ( Kids kids_l )
 
+
+flag : String -> Bool -> String -> List String -> Node
+flag showName default descr optionNames =
+--aBool  "d" "Directories"      "transfer directories without recursing"      "--dirs"
+    let
+        id =
+            case List.head <| List.filter (\s -> s /= "") optionNames of
+                Nothing  ->
+                    "<<< MISSING CLI-OPTION-NAME >>>"
+                Just opt ->
+                    if String.startsWith "--" opt then String.dropLeft 2 opt
+                    else                               opt
+        listTail l =
+            case List.tail l of
+                Nothing -> []
+                Just rest -> rest
+        listHead l =
+            case List.head l of
+                Nothing -> ""
+                Just s -> s
+        (opt1, opt2) =
+            ( listHead optionNames
+            , listHead <| listTail optionNames
+            )
+--            ( case List.head optionNames of
+--                Nothing -> ""
+--                Just opt -> opt
+--            , case List.head <| listTail optionNames of
+--                Nothing -> ""
+--                Just opt -> opt
+--            )
+    in
+--aBoolX : Id -> String -> String -> Bool -> String -> String -> Node
+--aBoolX id label descr flag cmdTrue cmdFalse =
+        aBoolX id showName descr default opt1 opt2
+
+
 aBoolX : Id -> String -> String -> Bool -> String -> String -> Node
 aBoolX id label descr flag cmdTrue cmdFalse =
   Node
@@ -117,10 +154,10 @@ aBooT : Id -> String -> String -> String -> Node
 aBooT id label descr cmdTrue =
   aBoolX (id ++ "T") label descr True cmdTrue ""
 
-aString : Id -> String -> String -> String -> Node
-aString id label descr cmdFmt =
+aString : Id -> String -> String -> String -> Bool -> Node
+aString id label descr cmdFmt required =
   let
-    strValue = StringValue (validateFormatForParam cmdFmt)
+    strValue = StringValue (validateFormatForParam cmdFmt) required
   in
     Node
       ( Record (id ++ "_S") label descr strValue (StringFmtr cmdFmt) )
