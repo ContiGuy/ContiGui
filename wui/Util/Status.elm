@@ -38,7 +38,7 @@ type alias Status =  -- dataType =
 
 init : Model   -- dataType
 init =
-    Model [] 2 0
+    Model [] 2 1
 
 
 -- UPDATE
