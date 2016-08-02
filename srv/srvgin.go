@@ -44,17 +44,17 @@ type (
 	}
 
 	Job struct {
-		TypeName     string                 `json:"type_name,omitempty"`
-		Id           string                 `json:"job_id,omitempty"`
-		Name         string                 `json:"job_name,omitempty"`
-		JsonSha1     string                 `json:"json_id,omitempty"`
-		YamlSha1     string                 `json:"yaml_id,omitempty"`
-		Cmd          string                 `json:"cmd,omitempty"`
-		Script       string                 `json:"script,omitempty"`
-		ScriptFPath  string                 `json:"script_fpath,omitempty"`
-		Debug        map[string]interface{} `json:"debug,omitempty"`
-		Nodes        []Wrap                 `json:"root"`
-		DefaultNodes []Wrap                 `json:"default_root,omitempty"`
+		TypeName       string                 `json:"type_name,omitempty"`
+		Id             string                 `json:"job_id,omitempty"`
+		Name           string                 `json:"job_name,omitempty"`
+		JsonSha1       string                 `json:"json_id,omitempty"`
+		YamlSha1       string                 `json:"yaml_id,omitempty"`
+		Cmd            string                 `json:"cmd,omitempty"`
+		ScriptTemplate string                 `json:"script_template,omitempty"`
+		ScriptFPath    string                 `json:"script_fpath,omitempty"`
+		Debug          map[string]interface{} `json:"debug,omitempty"`
+		Nodes          []Wrap                 `json:"root"`
+		DefaultNodes   []Wrap                 `json:"default_root,omitempty"`
 	}
 
 	Record struct {
@@ -125,6 +125,12 @@ func (job *Job) Check(jobTypeExpected string, jobIdExpected string) error {
 	//	}
 	if len(job.Nodes) == 0 {
 		msg := fmt.Sprintf("EMPTY job: contains no Nodes: type='%s', id='%s'",
+			job.TypeName, job.Id)
+		return errors.New(msg)
+	}
+
+	if len(job.ScriptTemplate) < 10 {
+		msg := fmt.Sprintf("CORRUPT job: contains no Script: type='%s', id='%s'",
 			job.TypeName, job.Id)
 		return errors.New(msg)
 	}
@@ -362,18 +368,22 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 	defaultJob, err := newJob.loadYamlScript(eh, baseDir)
 
 	//	Job struct {
-	//		TypeName     string `json:"type_name,omitempty"`
-	//		Id           string `json:"job_id,omitempty"`
-	//		Name         string `json:"job_name,omitempty"`
-	//		JsonSha1     string `json:"json_id,omitempty"`
-	//		YamlSha1     string `json:"yaml_id,omitempty"`
-	//		Cmd          string `json:"cmd,omitempty"`
-	//		Nodes        []Wrap `json:"root"`                   //--`json:"name"`
-	//		DefaultNodes []Wrap `json:"default_root,omitempty"` //--`json:"name"`
+	//		TypeName       string                 `json:"type_name,omitempty"`
+	//		Id             string                 `json:"job_id,omitempty"`
+	//		Name           string                 `json:"job_name,omitempty"`
+	//		JsonSha1       string                 `json:"json_id,omitempty"`
+	//		YamlSha1       string                 `json:"yaml_id,omitempty"`
+	//		Cmd            string                 `json:"cmd,omitempty"`
+	//		ScriptTemplate string                 `json:"script_template,omitempty"`
+	//		ScriptFPath    string                 `json:"script_fpath,omitempty"`
+	//		Debug          map[string]interface{} `json:"debug,omitempty"`
+	//		Nodes          []Wrap                 `json:"root"`
+	//		DefaultNodes   []Wrap                 `json:"default_root,omitempty"`
 	//	}
 
 	if err != nil || defaultJob == nil {
 		newJob.Nodes = job.DefaultNodes
+		newJob.ScriptTemplate = job.ScriptTemplate
 		log.Info("using hardcoded default job",
 			"job.nodes", len(newJob.Nodes),
 			"job.defaultNodes", len(newJob.DefaultNodes))
@@ -392,10 +402,13 @@ func (eh *errHandler_T) handleJobPost(baseDir string, c *gin.Context) error {
 	}
 	newJob.Name += "-" + idTail
 
-	log.Trace("constructed new job", "job", newJob)
+	//	log.Trace("constructed new job", "job", newJob)
 
 	eh.safe(
-		func() { eh.err = newJob.Check(jobTypeName, "") },
+		func() {
+			newJob.log()
+			eh.err = newJob.Check(jobTypeName, "")
+		},
 		func() { newJob.storeYamlScript(eh, baseDir) },
 		func() { c.JSON(http.StatusCreated, newJob) },
 	)
@@ -628,30 +641,90 @@ func (job *Job) storeYamlScript(eh *errHandler_T, baseDir string) {
 	eh.safe(
 		func() { job_yb, eh.err = yaml.Marshal(job) },
 		func() {
-			var (
-				lbl string
-				val interface{}
-			)
+			//			var (
+			//				lbl string
+			//				val interface{}
+			//			)
 
-			if len(job_yb) < 500 {
-				lbl = "job.yaml"
-				val = string(job_yb)
-			} else {
-				lbl = "size"
-				val = len(job_yb)
-			}
-			log.Info("Store job to YAML script",
-				"type", job.TypeName,
-				"id", job.Id,
-				"name", job.Name,
-				"nodes", len(job.Nodes),
-				"default-nodes", len(job.DefaultNodes),
-				lbl, val)
+			//			if len(job_yb) < 500 {
+			//				lbl = "job.yaml"
+			//				val = string(job_yb)
+			//			} else {
+			//				lbl = "size"
+			//				val = len(job_yb)
+			//			}
+
+			//			lbl := "job.yaml"
+			//			val := string(job_yb)
+			//			if len(job_yb) > 500 {
+			//				lbl = "job.yaml[:500]"
+			//				val = string(job_yb[:500]) + " ..."
+			//			}
+
+			//			jobFPath := job.getFPath(baseDir, "")
+			//			job.ScriptFPath = jobFPath
+			job.ScriptFPath = job.getFPath(baseDir, "")
 			jobScript_b = job.toScript(job_yb)
-			jobFPath := job.getFPath(baseDir, "")
-			eh.err = ioutil.WriteFile(jobFPath, jobScript_b, 0777)
+
+			job.log( /*job_yb*/ )
+
+			eh.err = ioutil.WriteFile(job.ScriptFPath, jobScript_b, 0777)
+
+			//			log.Trace("Store job to YAML script",
+			//				//			log.Info("Store job to YAML script",
+			//				"jobFPath", jobFPath,
+			//				"type", job.TypeName,
+			//				"id", job.Id,
+			//				"name", job.Name,
+			//				"nodes", len(job.Nodes),
+			//				"default-nodes", len(job.DefaultNodes),
+			//				"err", eh.err.Error(),
+			//				lbl, val)
 		},
 	)
+}
+
+func (job *Job) log( //--eh *errHandler_T,
+//	job_yb []byte,
+
+// baseDir string
+) {
+	//			var (
+	//				lbl string
+	//				val interface{}
+	//			)
+
+	//			if len(job_yb) < 500 {
+	//				lbl = "job.yaml"
+	//				val = string(job_yb)
+	//			} else {
+	//				lbl = "size"
+	//				val = len(job_yb)
+	//			}
+
+	job_yb, err := yaml.Marshal(job)
+
+	lbl := "job.yaml"
+	val := string(job_yb)
+	if len(job_yb) > 500 {
+		lbl = "job.yaml[:500]"
+		val = string(job_yb[:500]) + " ..."
+	}
+
+	//	jobFPath := job.getFPath(baseDir, "")
+	//	job.ScriptFPath = jobFPath
+	//	jobScript_b = job.toScript(job_yb)
+	//	eh.err = ioutil.WriteFile(jobFPath, jobScript_b, 0777)
+	log.Trace("Store job to YAML script",
+		//			log.Info("Store job to YAML script",
+		"jobFPath", job.ScriptFPath,
+		"type", job.TypeName,
+		"id", job.Id,
+		"name", job.Name,
+		"nodes", len(job.Nodes),
+		"default-nodes", len(job.DefaultNodes),
+		"err", err, //-.Error(),
+		lbl, val)
 }
 
 func (job *Job) getFPath(baseDir string, cs string) string {
@@ -680,7 +753,7 @@ func (job *Job) getFPath(baseDir string, cs string) string {
 
 func (job *Job) toScript(job_b []byte) []byte {
 	timeStamp := "" // fmt.Sprintf("@ %v", time.Now())
-	jobScript_b := []byte(fmt.Sprintf(job.Script,
+	jobScript_b := []byte(fmt.Sprintf(job.ScriptTemplate,
 		magicLine, job.TypeName, job.Name, job_b, job.Cmd, timeStamp))
 	return jobScript_b
 }

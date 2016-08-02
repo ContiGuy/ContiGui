@@ -74,26 +74,12 @@ init =
 -- UPDATE
 
 type Msg =
---    CallRSync   RSync.Msg
---  | CallJobType JobType.Msg
     JobTypeMsg JobType.Msg
---    | Save
---    | SaveSucceed SaveResult
---    | SaveFail Http.Error
     | ToggleDebug Bool
---    | EditCfgName String
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
---      CallRSync rsMsg ->
---        let
---          ( newRoot, cmd ) = RSync.update rsMsg model.rsync
---        in
---          ( { model | rsync = newRoot }
---          , Cmd.map CallRSync cmd
---          )
---{-------------------------------------
       JobTypeMsg jtMsg ->
         let
           ( newJT, cmd ) = JobType.update jtMsg model.jobType
@@ -101,19 +87,17 @@ update msg model =
           ( { model | jobType = newJT }
           , Cmd.map JobTypeMsg cmd
           )
--------------------------------------}
+
       ToggleDebug dbg ->
             ( { model | debug = dbg }, Cmd.none )
+
 
 -- VIEW
 
 view : Model -> Html Msg
 view model =
   let
-    --( rootName, rootView ) = W.viewRoot model.rootNode
     jt = JobType.view model.jobType
-
---    rsyncHead = RSync.viewHead "Pick Name" model.rsync model.allowSave
 
     wTreeLI w =
       {----------------------------------------------------------
@@ -139,16 +123,8 @@ view model =
 --      ----------------------------------------------------------}
       ]
   in
-    div [] [
---      h2 [] [ text "RSync" ]
---    ,
-      table [] [ tr [] [
-          td [] [ Html.App.map JobTypeMsg jt ]
-        --, td [] [ Html.App.map CallRSync (RSync.viewHead "Pick Name" model.rsync) ]
---          td [] [ Html.App.map CallRSync rsyncHead ]
-        ]
-      ]
---    , Html.App.map CallRSync (RSync.viewBody model.rsync)
+    div []
+    [ table [] [ tr [] [ td [] [ Html.App.map JobTypeMsg jt ] ] ]
     , dbg
     ]
 
