@@ -28,7 +28,8 @@ else
 	RUN="echo ok."
 fi
 
-(cd wui && $CB go generate) &&
+## (cd wui && $CB go generate) & &
+(cd wui && bash -x ./embedwui.sh Main.elm) &&
 	$CB go install -race &&
 	$UPX &&
 	LOGXI=* $RUN
