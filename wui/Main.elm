@@ -43,31 +43,17 @@ main =
 
 type alias Model =
   {
-  --id        : String
-  --, cfgName   : String
     output    : String
   , debug     : Bool
-
-  -- widgets
---  , jobTypes  : JobType.Model
---  , rootNode  : W.Node
---  , rsync     : RSync.Model
   , jobType   : JobType.Model
---  , allowSave : Bool
   }
 
 init : (Model, Cmd Msg)
 init =
   let
---    ( root, nodes ) = aRoot "RSync" [
---      fst RSync.init
---    ] (fmtList "rsync {{}} # ..." " ")
     ( jobType, jtCmd ) = JobType.init
   in
-    ( Model "" False
---      (fst JobType.init)
-      jobType
---      True
+    ( Model "" False jobType
     , Cmd.map JobTypeMsg jtCmd )
 
 

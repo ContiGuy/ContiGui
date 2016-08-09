@@ -1,3 +1,17 @@
+-- Copyright © 2016 ContiGuy mrcs.contiguy@mailnull.com
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--     http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
+
 module JobType exposing (..)
 
 import Html            exposing (..)
@@ -7,7 +21,6 @@ import Html.Events
 import Http
 import Task
 import Cmd.Extra
---import Json.Encode     -- exposing ((:=))
 import Json.Decode          exposing ((:=))
 import Json.Decode.Extra    exposing ((|:))
 
@@ -15,7 +28,6 @@ import Json.Decode.Extra    exposing ((|:))
 
 import Job
 import ComboBox
---import Widget.Data.Json
 import Util.Debug
 import Util.Status
 
@@ -35,16 +47,11 @@ type alias Model =
 
 init : ( Model, Cmd Msg )
 init =
---  let
---    cb = ComboBox.init []
-----    ( job, _ ) = Job.init
---  in
-    ( Model "rsync" "RSync" defaultJob  -- job
-        [] emptyComboBox   -- cb
+    ( Model "rsync" "RSync" defaultJob
+        [] emptyComboBox
         "Load existing Jobs"
         Util.Status.init
         Util.Debug.init
---    , Cmd.none
     , loadJobs
     )
 
@@ -55,6 +62,12 @@ defaultJob =
 emptyComboBox : ComboBox.Model
 emptyComboBox =
     ComboBox.init []
+
+equal : Model -> Model -> Bool
+equal model1 model2 =
+    model1.name == model2.name
+    && model1.job == model2.job
+    && model1.jobIdNames == model2.jobIdNames
 
 
 -- UPDATE
@@ -159,7 +172,6 @@ update msg model =
 
             LoadJobs ->
                 { model
---                | status = Util.Status.Status "Load Jobs" <| Ok "loading ..."
                 | action = "Loading Jobs"
                 } ! [ loadJobs ]
 
@@ -180,19 +192,35 @@ update msg model =
                         List.map (\ (id, n) -> n) jobType.jobIdNames
 --                    _ = Debug.log "JobType.LoadJobsSucceed:loadedJobNames" loadedJobNames
 
-                    jobLoadMsgs =
+                    (jobType', jobLoadMsgs) =
                         case List.head jobType.jobIdNames of
-                            Nothing -> []
+                            Nothing ->   -- []
+--                                [ Cmd.Extra.message <| StatusMsg <| Util.Status.Add <| Util.Status.Status model.action
+--                                                  <| Ok "done"
+--                                ]
+
+--                                { jobType
+--                                | action = "Load Job"
+--                                } !
+                                ( jobType
+--                                , [ Cmd.map StatusMsg <| Util.Status.Add <| Util.Status.Status model.action <| Ok "done"
+--                                  ] )
+                                , [ Cmd.Extra.message <| StatusMsg <| Util.Status.Add <| Util.Status.Status model.action
+                                                      <| Ok "done"
+                                  ] )
                             Just (jobId, jobName ) ->
-                                [ Cmd.Extra.message <| JobMsg <| Job.Load jobType.name jobId
-                                ]
+                                ( { jobType
+                                  | action = "Load Job"
+                                  }
+                                , [ Cmd.Extra.message <| JobMsg <| Job.Load jobType.name jobId
+                                  ] )
                 in
-                    jobType !
+                    jobType' !
                     ( [ Cmd.Extra.message <| ComboMsg <| ComboBox.NewOptions loadedJobNames
-                      ] ++ jobLoadMsgs ++
-                      [ Cmd.Extra.message <| StatusMsg <| Util.Status.Add <| Util.Status.Status model.action
-                                          <| Ok "done"
-                      ]
+                      ] ++ jobLoadMsgs
+--                      ++ [ Cmd.Extra.message <| StatusMsg <| Util.Status.Add <| Util.Status.Status model.action
+--                                          <| Ok "done"
+--                      ]
                     )
 
             StatusMsg stMsg ->
@@ -297,6 +325,15 @@ view model =
       , Html.App.map JobMsg    <| Job.view model.name model.job
       , Html.App.map DebugMsg  <| Util.Debug.view "JobType" model.debug
       ]
+
+viewModel : Model -> Html Msg
+viewModel model =
+    table []
+    [ tr []
+      [ td [] [ text <| toString model.jobIdNames ]
+      , td [] [ text <| toString model.job ]
+      ]
+    ]
 
 
 -- Helpers
