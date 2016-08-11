@@ -181,7 +181,11 @@ view model =
                         ]
 --                        JobType.view <| snd model.result
   in
-    Html.App.map JobTypeMsg resHtml
+    div []
+    [ h2 [] [ text "System Test" ]
+    , Html.App.map JobTypeMsg resHtml
+    ]
+
 --    text <| toString <| model
 --    div []
 --    [ table [] [ tr [] [ td [] [ Html.App.map JobTypeMsg jt ] ] ]

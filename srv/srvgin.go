@@ -25,6 +25,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,6 +63,7 @@ type (
 	}
 
 	JobTypeServer struct {
+		baseDir    string
 		defaults_m map[ /*job type*/ string]Job
 	}
 )
@@ -83,13 +85,117 @@ func (eh *errHandler_T) ifErr(handle func()) bool {
 	return eh.err != nil
 }
 
-func NewJobTypeServer() *JobTypeServer {
+func NewJobTypeServer(baseDir string) *JobTypeServer {
 	return &JobTypeServer{
+		baseDir:    baseDir,
 		defaults_m: make(map[string]Job),
 	}
 }
 
-func (jts *JobTypeServer) ServeGin(port int, baseDir string, htmlFiles_l []string) error {
+func (jts *JobTypeServer) ServeGin(port int, //--baseDir string,
+	htmlFiles_l []string,
+) error {
+	//	router := gin.Default()
+
+	//	router.GET("/", func(c *gin.Context) {
+	//		eh := errHandler_T{}
+	//		var index_b []byte
+	//		eh.safe(func() {
+	//			for _, fn := range htmlFiles_l {
+	//				index_b, eh.err = ioutil.ReadFile(fn)
+	//				if eh.err == nil {
+	//					var n int64
+	//					n, eh.err = io.Copy(c.Writer, bytes.NewBuffer(index_b))
+	//					log.Info("serving local file index.html", "file", fn, "size", n, "err", eh.err)
+	//					break
+	//				}
+	//			}
+	//			if len(index_b) == 0 {
+	//				eh.err = wui.WriteMainWuiHtml(c.Writer)
+	//				log.Info("serving builtin index.html", "err", eh.err)
+	//			}
+	//		})
+
+	//		eh.ifErr(func() { c.AbortWithError(http.StatusBadRequest, eh.err) })
+	//	})
+
+	//	router.GET("/jobs/:jobType", func(c *gin.Context) {
+	//		//		time.Sleep(300 * time.Millisecond)
+	//		eh := &errHandler_T{}
+	//		jts.handleJobList(eh, baseDir, c)
+	//	})
+
+	//	router.GET("/jobs/:jobType/:jobId", func(c *gin.Context) {
+	//		//		time.Sleep(300 * time.Millisecond)
+	//		eh := &errHandler_T{}
+	//		jts.handleJobGet(eh, baseDir, c)
+	//	})
+
+	//	router.POST("/jobs/:jobType", func(c *gin.Context) {
+	//		//		time.Sleep(300 * time.Millisecond)
+	//		eh := &errHandler_T{}
+	//		jts.handleJobPost(eh, baseDir, c)
+	//	})
+
+	//	router.PUT("/jobs/:jobType/:jobId", func(c *gin.Context) {
+	//		//		time.Sleep(300 * time.Millisecond)
+	//		eh := &errHandler_T{}
+	//		jts.handleJobPut(eh, baseDir, c)
+	//	})
+
+	//	router.GET("/ping", func(c *gin.Context) {
+	//		c.JSON(200, gin.H{
+	//			"message": "pong",
+	//		})
+	//	})
+
+	port_s := ""
+	if port > 0 && port < 65536 {
+		port_s = fmt.Sprintf(":%d", port)
+	}
+	url := fmt.Sprintf("http://localhost%s/", port_s)
+
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		err := webbrowser.Open(url)
+		if err != nil {
+			log.Error("FAILED to open url in browser", "err", err)
+		}
+	}()
+
+	router := jts.mkGinEngine(htmlFiles_l)
+	return router.Run(port_s) // listen and server on 0.0.0.0:8080
+}
+
+func (jts *JobTypeServer) ServeTestGin( //--port int,
+	htmlFiles_l []string) error {
+	router := jts.mkGinEngine(htmlFiles_l)
+	server := httptest.NewServer(router)
+	defer server.Close()
+	url := server.URL
+
+	//	port_s := ""
+	//	if port > 0 && port < 65536 {
+	//		port_s = fmt.Sprintf(":%d", port)
+	//	}
+	//	url := fmt.Sprintf("http://localhost%s/", port_s)
+
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		err := webbrowser.Open(url)
+		if err != nil {
+			log.Error("FAILED to open url in browser", "err", err)
+		}
+	}()
+
+	//	server.Start()
+	time.Sleep(3 * time.Second)
+	return nil
+	//	router := jts.mkGinEngine(htmlFiles_l)
+	//	return router.Run(port_s) // listen and server on 0.0.0.0:8080
+}
+
+func (jts *JobTypeServer) mkGinEngine(htmlFiles_l []string) *gin.Engine {
 	router := gin.Default()
 
 	router.GET("/", func(c *gin.Context) {
@@ -117,25 +223,29 @@ func (jts *JobTypeServer) ServeGin(port int, baseDir string, htmlFiles_l []strin
 	router.GET("/jobs/:jobType", func(c *gin.Context) {
 		//		time.Sleep(300 * time.Millisecond)
 		eh := &errHandler_T{}
-		jts.handleJobList(eh, baseDir, c)
+		jts.handleJobList(eh, //--baseDir,
+			c)
 	})
 
 	router.GET("/jobs/:jobType/:jobId", func(c *gin.Context) {
 		//		time.Sleep(300 * time.Millisecond)
 		eh := &errHandler_T{}
-		jts.handleJobGet(eh, baseDir, c)
+		jts.handleJobGet(eh, //--baseDir,
+			c)
 	})
 
 	router.POST("/jobs/:jobType", func(c *gin.Context) {
 		//		time.Sleep(300 * time.Millisecond)
 		eh := &errHandler_T{}
-		jts.handleJobPost(eh, baseDir, c)
+		jts.handleJobPost(eh, //--baseDir,
+			c)
 	})
 
 	router.PUT("/jobs/:jobType/:jobId", func(c *gin.Context) {
 		//		time.Sleep(300 * time.Millisecond)
 		eh := &errHandler_T{}
-		jts.handleJobPut(eh, baseDir, c)
+		jts.handleJobPut(eh, //--baseDir,
+			c)
 	})
 
 	router.GET("/ping", func(c *gin.Context) {
@@ -143,25 +253,11 @@ func (jts *JobTypeServer) ServeGin(port int, baseDir string, htmlFiles_l []strin
 			"message": "pong",
 		})
 	})
-
-	port_s := ""
-	if port > 0 && port < 65536 {
-		port_s = fmt.Sprintf(":%d", port)
-	}
-	url := fmt.Sprintf("http://localhost%s/", port_s)
-
-	go func() {
-		time.Sleep(100 * time.Millisecond)
-		err := webbrowser.Open(url)
-		if err != nil {
-			log.Error("FAILED to open url in browser", "err", err)
-		}
-	}()
-
-	return router.Run(port_s) // listen and server on 0.0.0.0:8080
+	return router
 }
 
-func (jts *JobTypeServer) handleJobGet(eh *errHandler_T, baseDir string, c *gin.Context) error {
+func (jts *JobTypeServer) handleJobGet(eh *errHandler_T, //--baseDir string,
+	c *gin.Context) error {
 	//... parse JSON in post body
 	defer c.Request.Body.Close()
 
@@ -180,7 +276,7 @@ func (jts *JobTypeServer) handleJobGet(eh *errHandler_T, baseDir string, c *gin.
 		TypeName: jobTypeName,
 		Id:       jobId,
 	}
-	job, err := newJob.loadYamlScript(eh, baseDir)
+	job, err := newJob.loadYamlScript(eh, jts.baseDir)
 	if err != nil || job == nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return err
@@ -198,7 +294,8 @@ func (jts *JobTypeServer) handleJobGet(eh *errHandler_T, baseDir string, c *gin.
 	return eh.err
 }
 
-func (jts *JobTypeServer) handleJobList(eh *errHandler_T, baseDir string, c *gin.Context) error {
+func (jts *JobTypeServer) handleJobList(eh *errHandler_T, //--baseDir string,
+	c *gin.Context) error {
 	//... parse JSON in post body
 	defer c.Request.Body.Close()
 
@@ -216,7 +313,7 @@ func (jts *JobTypeServer) handleJobList(eh *errHandler_T, baseDir string, c *gin
 
 	eh.safe(func() {
 		eh.forAllJobs(
-			baseDir, jobTypeName, "*", "",
+			jts.baseDir, jobTypeName, "*", "",
 
 			// cmdDir, jobTypeName, jobName
 			func(oldJobFPath string, oldJob_b []byte) error {
@@ -275,7 +372,8 @@ func (jts *JobTypeServer) handleJobList(eh *errHandler_T, baseDir string, c *gin
 // this call performs 2 tasks:
 // 1. if the request body contains a valid job (with an id) the job will be stored on disk [optional]
 // 2. (then) it creates a new default job with a new unique id and a unique name and returns it [always]
-func (jts *JobTypeServer) handleJobPost(eh *errHandler_T, baseDir string, c *gin.Context) error {
+func (jts *JobTypeServer) handleJobPost(eh *errHandler_T, //--baseDir string,
+	c *gin.Context) error {
 	var (
 		jobTypeName = c.Param("jobType")
 		newJobId    = c.Query("newJobId")
@@ -293,7 +391,7 @@ func (jts *JobTypeServer) handleJobPost(eh *errHandler_T, baseDir string, c *gin
 	} else {
 		err := job.Check(jobTypeName, "")
 		if err == nil {
-			job.storeYamlScript(eh, baseDir)
+			job.storeYamlScript(eh, jts.baseDir)
 		} else {
 			log.Info("posted job invalid - not stored",
 				"id", job.Id, "type", job.TypeName, "name", job.Name,
@@ -306,7 +404,7 @@ func (jts *JobTypeServer) handleJobPost(eh *errHandler_T, baseDir string, c *gin
 		Id:       "default",
 		Name:     newJobName,
 	}
-	defaultJob, err := newJob.loadYamlScript(eh, baseDir)
+	defaultJob, err := newJob.loadYamlScript(eh, jts.baseDir)
 
 	//	Job struct {
 	//		TypeName       string                 `json:"type_name,omitempty"`
@@ -361,7 +459,7 @@ func (jts *JobTypeServer) handleJobPost(eh *errHandler_T, baseDir string, c *gin
 			newJob.log()
 			eh.err = newJob.Check(jobTypeName, "")
 		},
-		func() { newJob.storeYamlScript(eh, baseDir) },
+		func() { newJob.storeYamlScript(eh, jts.baseDir) },
 		func() { c.JSON(http.StatusCreated, newJob) },
 	)
 
@@ -371,7 +469,8 @@ func (jts *JobTypeServer) handleJobPost(eh *errHandler_T, baseDir string, c *gin
 
 // save an existing job (with an existing id) to disk and return it or
 // another job which is identified by the newJobId query parameter.
-func (jts *JobTypeServer) handleJobPut(eh *errHandler_T, baseDir string, c *gin.Context) error {
+func (jts *JobTypeServer) handleJobPut(eh *errHandler_T, //--baseDir string,
+	c *gin.Context) error {
 	//... parse JSON in post body
 	defer c.Request.Body.Close()
 
@@ -397,7 +496,7 @@ func (jts *JobTypeServer) handleJobPut(eh *errHandler_T, baseDir string, c *gin.
 		//		fmt.Printf("got '%s': err=%v\n", cmd_s, eh.err)
 	})
 
-	job.storeYamlScript(eh, baseDir)
+	job.storeYamlScript(eh, jts.baseDir)
 
 	if job.Id == "default" {
 		jts.defaults_m[job.TypeName] = *job
@@ -424,7 +523,7 @@ func (jts *JobTypeServer) handleJobPut(eh *errHandler_T, baseDir string, c *gin.
 
 			xJob := *job
 			xJob.Id = newJobId
-			newJob, err := xJob.loadYamlScript(eh, baseDir)
+			newJob, err := xJob.loadYamlScript(eh, jts.baseDir)
 			if newJob != nil && err == nil {
 				c.JSON(http.StatusAccepted, newJob)
 			} else {

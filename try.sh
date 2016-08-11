@@ -29,8 +29,10 @@ fi
 
 if echo $* | grep test > /dev/null ; then
     MAIN="Test/System"
+    SUBCMD=test
 else
     MAIN="Main"
+    SUBCMD="wui --base-folder=$HOME/tmp"
 fi
 
 if echo $* | grep 'build' > /dev/null ; then
@@ -40,7 +42,8 @@ else
 fi
 
 if echo $* | grep run > /dev/null ; then
-    RUN="conti-gui wui --base-folder=$HOME/tmp"
+    # RUN="conti-gui $SUBCMD --base-folder=$HOME/tmp"
+    RUN="conti-gui $SUBCMD"
 else
 	RUN="echo ."
 fi

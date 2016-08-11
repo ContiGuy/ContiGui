@@ -34,8 +34,9 @@ var (
 
 			//			baseDir := "/tmp"
 			htmlFiles_l := []string{"index.html", "wui/index.html"}
-			jts := srv.NewJobTypeServer()
-			return jts.ServeGin(33333, baseDir, htmlFiles_l)
+			jts := srv.NewJobTypeServer(baseDir)
+			return jts.ServeGin(33333, //-- baseDir,
+				htmlFiles_l)
 
 		},
 	}
