@@ -16,6 +16,7 @@ module Test.System exposing (..)
 
 ----import Widget          as W  exposing (..)
 import JobType           --  exposing (..)
+import Job           --  exposing (..)
 ----import RSync                 exposing (..)
 --import Util.Status
 --import Util.Debug
@@ -44,8 +45,8 @@ main =
 -- MODEL
 
 type alias Model =
---  { results : List ( Maybe TestResult, TestModel )
-  { result : ( Maybe TestResult, TestModel )
+  { results : List TestSample  -- ( Maybe TestResult, TestModel )
+--  { result : ( Maybe TestResult, TestModel )
 --  id        : String
 --  --, cfgName   : String
 ----    output    : String
@@ -60,6 +61,7 @@ type alias Model =
 
 type alias TestResult = Result String String
 type alias TestModel  = JobType.Model
+type alias TestSample = ( Maybe TestResult, TestModel )
 
 init : (Model, Cmd Msg)
 init =
@@ -70,26 +72,43 @@ init =
     ( jobType, jtCmd ) = JobType.init
   in
     ( Model
-      ( Nothing, jobType )
+      [ ( Nothing, jobType )
+      ]
 
 --      "" -- False
 --      jobType
     , Cmd.map JobTypeMsg jtCmd )
 
 
+newJob jobType =
+    let
+        (jobType', jtm) = JobType.update (JobType.JobMsg <| Job.New jobType.name) jobType
+    in
+        (Nothing, jobType')
+
 -- UPDATE
 
 type Msg =
-    JobTypeMsg JobType.Msg
+    JobTypeMsg Int JobType.Msg
 --    | ToggleDebug Bool
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
+    let
+        resList =
+            List.map () model.results
+    in
+        { model
+        | results = resList
+        } ! []
+
+updateJobType : Msg -> TestSample -> ( TestSample, Cmd Msg )
+updateJobType msg sample =
     case msg of
-      JobTypeMsg jtMsg ->
+      JobTypeMsg jtIdx jtMsg ->
         let
           ( newJT, cmd ) =
-            JobType.update jtMsg <| snd model.result
+            JobType.update jtMsg <| snd sample  --  model.result
 --            JobType.update jtMsg model.jobType
           res =
 --            if newJT == (fst JobType.init) then
@@ -98,11 +117,12 @@ update msg model =
             else
                 Err <| toString newJT
         in
---          ( { model | jobType = newJT }
-          ( { model
---            | jobType = newJT
-            | result = (Just res, newJT)
-            }
+----          ( { model | jobType = newJT }
+--          ( { model
+----            | jobType = newJT
+--            | result = (Just res, newJT)
+--            }
+          ( (Just res, newJT)
           , Cmd.map JobTypeMsg cmd
           )
 
@@ -115,7 +135,7 @@ update msg model =
 view : Model -> Html Msg
 view model =
   let
-    x = 3
+--    x = 3
 --    jt = JobType.view model.jobType
 --
 --    wTreeLI w =
@@ -158,24 +178,37 @@ view model =
 --        , debug = dbg
 ----        | status = Util.Status.init
 --        }
+
     resHtml =
-        case fst model.result of
-            Nothing -> text "Pending"
+--        table [] <| List.concat <| List.indexedMap (\ i -> res -> resHtmlEntry i res) model.results
+        table []
+            <| List.concat
+--            <| List.indexedMap (\ i -> res -> resHtmlEntry i res) model.results
+            <| List.indexedMap resHtmlEntry model.results
+    resHtmlEntry i result =
+      let
+        idx = toString i
+      in
+--        case fst model.result of
+        case fst result of
+            Nothing ->
+                [ tr [] [ td [] [ text <| idx ++ ": Pending ..." ] ] ]
             Just res ->
                 case res of
                     Ok msg ->
-                        text <| "OK: " ++ msg
+                        [ tr [] [ td [] [ text <| idx ++ ": OK: " ++ msg ] ] ]
                     Err msg ->
-                        table []
+--                        table []
                         [ tr []
-                          [ td [] [ text "expected" ]
+                          [ td [] [ text <| idx ++ ": expected" ]
                           , td [] [ JobType.viewModel <| fst JobType.init ]
 --                          , td [] [ JobType.viewModel expJobType ]
 --                          , td [] [ text <| toString expJobType ]
                           ]
                         , tr []
-                          [ td [] [ text "actual" ]
-                          , td [] [ JobType.viewModel <| snd model.result ]
+                          [ td [] [ text <| idx ++ ": actual" ]
+                          , td [] [ JobType.viewModel <| snd result ]
+--                          , td [] [ JobType.viewModel <| snd model.result ]
 --                          , td [] [ text <| toString <| snd model.result ]
                           ]
                         ]
