@@ -52,11 +52,20 @@ type alias Model =
 init : ( Model, Cmd msg )
 init =
     let
---        node = RSyncConfig.init
         node = aVertical "new-job" "new" [] <| fmtList "<<EMPTY JOB -- DON'T USE>>" ", "
     in
---        ( Model node.rec.id node.rec.label "Empty Job Type" node Util.Debug.init
         ( Model "" node.rec.label "Empty Job Type" defaultScript node Util.Debug.init "empty-file" []
+        , Cmd.none )
+
+defaultJob : ( Model, Cmd msg )
+defaultJob =
+    let
+        node = defaultRootNode
+--        node = aVertical "new-job" "new" [] <| fmtList "<<EMPTY JOB -- DON'T USE>>" ", "
+    in
+----        ( Model "" node.rec.label "Empty Job Type" defaultScript node Util.Debug.init "empty-file" []
+--        ( Model "default" node.rec.label "RSync" defaultScript node Util.Debug.init "" []
+        ( Model "default" "new" "RSync" defaultScript node Util.Debug.init "" []
         , Cmd.none )
 
 defaultRootNode : Node
@@ -97,6 +106,9 @@ type Msg
   | Load String String
   | LoadFail Http.Error
   | LoadSucceed Model
+  | SaveDefault
+--  | SaveDefaultFail Http.Error
+--  | SaveDefaultSucceed
   | WidgetMsg Widget.Msg
   | DebugMsg Util.Debug.Msg
 
@@ -168,8 +180,25 @@ update msg model =
                     | typeName = jobType
                     } ! [ sljCmd ]
 
+            SaveDefault ->  -- jobTypeName newJobId ->
+                let
+                    job = fst defaultJob
+                    jobType = job.typeName
+                    sljCmd = saveLoadJob jobType job ""
+--                    _ = Debug.log "Job.update:saveLoadJob" sljCmd
+                in
+                    { model
+                    | typeName = jobType
+                    } ! [ sljCmd ]
+
             SaveSucceed newModel ->   -- Model ->
-                newModel ! []
+                let
+--                    newModel' = newModel
+                    newModel' =
+                        if newModel.id == "default" then model
+                        else newModel
+                in
+                    newModel' ! []
         --        let
         --          ( nCombo, nCbMsg ) =
         --            ComboBox.update (ComboBox.Success saveResult.jobName) model.combo

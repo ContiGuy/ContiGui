@@ -342,7 +342,7 @@ func (jts *JobTypeServer) handleJobList(eh *errHandler_T, //--baseDir string,
 							"nodes", len(job.Nodes),
 							"root", rootNode,
 						)
-						if job.TypeName == jobTypeName {
+						if job.TypeName == jobTypeName && job.Id != "default" {
 							jobType.Jobs = append(jobType.Jobs, job)
 						}
 					},
@@ -496,10 +496,12 @@ func (jts *JobTypeServer) handleJobPut(eh *errHandler_T, //--baseDir string,
 		//		fmt.Printf("got '%s': err=%v\n", cmd_s, eh.err)
 	})
 
-	job.storeYamlScript(eh, jts.baseDir)
+	//	job.storeYamlScript(eh, jts.baseDir)
 
 	if job.Id == "default" {
 		jts.defaults_m[job.TypeName] = *job
+	} else {
+		job.storeYamlScript(eh, jts.baseDir)
 	}
 
 	//	eh.safe(func() {

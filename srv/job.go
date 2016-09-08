@@ -357,6 +357,10 @@ func (job *Job) extractTypeVersion( //--eh *errHandler_T,
 		func() { hJob3 = eh.hashSha1(job) },
 		func() { hJobVers2 = eh.hashSha1(vJob) },
 		func() {
+			//			errStr := ""
+			//			if eh.err != nil {
+			//				errStr = eh.err.Error()
+			//			}
 			log.Info("job version hashes",
 				"job 1", hJob1,
 				"job 2", hJob2,
@@ -367,7 +371,7 @@ func (job *Job) extractTypeVersion( //--eh *errHandler_T,
 				"job version 2", hJobVers2,
 				"job version 1 == 2", (hJobVers1 == hJobVers2),
 				"job type version", hJobTypeVers,
-				"err", eh.err.Error(),
+				//				"err", errStr, //--eh.err.Error(),
 			)
 		},
 	)
