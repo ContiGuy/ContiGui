@@ -1,3 +1,17 @@
+-- Copyright © 2016 ContiGuy mrcs.contiguy@mailnull.com
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--     http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
+
 module JobType exposing (..)
 
 import Html            exposing (..)
@@ -7,7 +21,6 @@ import Html.Events
 import Http
 import Task
 import Cmd.Extra
---import Json.Encode     -- exposing ((:=))
 import Json.Decode          exposing ((:=))
 import Json.Decode.Extra    exposing ((|:))
 
@@ -15,7 +28,6 @@ import Json.Decode.Extra    exposing ((|:))
 
 import Job
 import ComboBox
---import Widget.Data.Json
 import Util.Debug
 import Util.Status
 
@@ -29,23 +41,19 @@ type alias Model =
   , jobIdNames   : List (String, String)
   , combo        : ComboBox.Model
   , action       : String
-  , status       : Util.Status.Model    -- Job.Model
+  , status       : Util.Status.Model
   , debug        : Util.Debug.Model
   }
 
 init : ( Model, Cmd Msg )
 init =
---  let
---    cb = ComboBox.init []
-----    ( job, _ ) = Job.init
---  in
-    ( Model "rsync" "RSync" defaultJob  -- job
-        [] emptyComboBox   -- cb
+    ( Model "rsync" "RSync" defaultJob
+        [] emptyComboBox
         "Load existing Jobs"
         Util.Status.init
         Util.Debug.init
---    , Cmd.none
-    , loadJobs
+--    , loadJobs
+    , putDefaultAndLoadJobs
     )
 
 defaultJob : Job.Model
@@ -56,6 +64,12 @@ emptyComboBox : ComboBox.Model
 emptyComboBox =
     ComboBox.init []
 
+equal : Model -> Model -> Bool
+equal model1 model2 =
+    model1.name == model2.name
+    && model1.job == model2.job
+    && model1.jobIdNames == model2.jobIdNames
+
 
 -- UPDATE
 
@@ -65,13 +79,13 @@ type Msg
   | SaveJob
   | UpgradeJob
   | Rename String
-  | JobMsg Job.Msg
-  | ComboMsg ComboBox.Msg
-  | DebugMsg Util.Debug.Msg
-  | StatusMsg (Util.Status.Msg)  --  Job.Model)
   | LoadJobs
   | LoadJobsFail Http.Error
   | LoadJobsSucceed Model
+  | JobMsg Job.Msg
+  | ComboMsg ComboBox.Msg
+  | DebugMsg Util.Debug.Msg
+  | StatusMsg Util.Status.Msg
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -80,28 +94,24 @@ update msg model =
           case msg of
             NewJob ->
                 { model
---                | status = Util.Status.Status "New Job" <| Ok "creating ..."
                 | action = "Create New Job"
                 } !
                 [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.New model.name ]
 
             CloneJob ->
                 { model
---                | status = Util.Status.Status "New Job" <| Ok "creating ..."
                 | action = "Clone Job"
                 } !
                 [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.Clone ]
 
             SaveJob ->
                 { model
---                | status = Util.Status.Status "New Job" <| Ok "creating ..."
                 | action = "Save Job"
                 } !
                 [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.Save model.name "" ]
 
             UpgradeJob ->
                 { model
---                | status = Util.Status.Status "New Job" <| Ok "creating ..."
                 | action = "Upgrade Job"
                 } !
                 [ Cmd.map JobMsg <| Cmd.Extra.message <| Job.Upgrade ]
@@ -109,7 +119,6 @@ update msg model =
             Rename newName ->
               { model
               | name = newName
---              , status = Util.Status.Status "Rename Job" <| Ok "done."
               } ! []
 
             DebugMsg dbgMsg ->
@@ -122,8 +131,6 @@ update msg model =
 
             JobMsg jmsg ->
               let
---                _ = Debug.log ("JobType.update:JobMsg " ++ (toString model.jobIdNames)) jmsg
---                _ = Debug.log ("JobType.update:JobMsg") jmsg
                 ( job', jmsg' ) =
                     Job.update jmsg model.job
 
@@ -159,7 +166,6 @@ update msg model =
 
             LoadJobs ->
                 { model
---                | status = Util.Status.Status "Load Jobs" <| Ok "loading ..."
                 | action = "Loading Jobs"
                 } ! [ loadJobs ]
 
@@ -168,31 +174,34 @@ update msg model =
                     _ = Debug.log "JobType.LoadJobsFail" err
                 in
                     model !
-                    [ Cmd.Extra.message <| StatusMsg <| Util.Status.Add <| Util.Status.Status model.action
+                    [ Cmd.Extra.message <| StatusMsg <| Util.Status.Add
+                                        <| Util.Status.Status model.action
                                         <| Err <| toString err
                     ]
 
             LoadJobsSucceed jobType ->  -- (List Model)
                 let
---                    _ = Debug.log "JobType.LoadJobsSucceed" jobType
-
                     loadedJobNames =
                         List.map (\ (id, n) -> n) jobType.jobIdNames
---                    _ = Debug.log "JobType.LoadJobsSucceed:loadedJobNames" loadedJobNames
 
-                    jobLoadMsgs =
+                    (jobType', jobLoadMsgs) =
                         case List.head jobType.jobIdNames of
-                            Nothing -> []
+                            Nothing ->
+                                ( jobType
+                                , [ Cmd.Extra.message <| StatusMsg <| Util.Status.Add
+                                                      <| Util.Status.Status model.action
+                                                      <| Ok "done"
+                                  ] )
                             Just (jobId, jobName ) ->
-                                [ Cmd.Extra.message <| JobMsg <| Job.Load jobType.name jobId
-                                ]
+                                ( { jobType
+                                  | action = "Load Job"
+                                  }
+                                , [ Cmd.Extra.message <| JobMsg <| Job.Load jobType.name jobId
+                                  ] )
                 in
-                    jobType !
+                    jobType' !
                     ( [ Cmd.Extra.message <| ComboMsg <| ComboBox.NewOptions loadedJobNames
-                      ] ++ jobLoadMsgs ++
-                      [ Cmd.Extra.message <| StatusMsg <| Util.Status.Add <| Util.Status.Status model.action
-                                          <| Ok "done"
-                      ]
+                      ] ++ jobLoadMsgs
                     )
 
             StatusMsg stMsg ->
@@ -229,8 +238,6 @@ updateCombo cbmsg model =
             "old job " ++ (toString model.job.id) ++ ": " ++ (toString model.job.name)
         ( cbb, cbmsg' ) =
             ComboBox.update cbmsg model.combo
---        msg1 =
---            Cmd.map ComboMsg cbmsg'
         (nJob, msg2) =
           (
           case cbmsg of
@@ -243,7 +250,6 @@ updateCombo cbmsg model =
             ComboBox.Select s ->
               let
                 newJobId = findJobId s model
---                _ = Debug.log "JobType.updateCombo:ComboBox.Select" (model.combo.current ++ " (" ++ model.job.id ++ ")" ++ " -->> " ++ s ++ " (" ++ newJobId ++ ")")
               in
                 ( model.job
                 , Cmd.map JobMsg <| Cmd.batch [ Cmd.Extra.message <| Job.Save model.name newJobId ]
@@ -259,7 +265,7 @@ updateCombo cbmsg model =
         | combo = cbb
         , job = nJob
         } !
-        [ Cmd.map ComboMsg cbmsg'   -- msg1
+        [ Cmd.map ComboMsg cbmsg'
         , msg2
         ]
 
@@ -283,12 +289,8 @@ view model =
       , table []
         [ tr []
           [ td [] [ button [ Html.Events.onClick NewJob ]                              [ text "New"] ]
---          , td [] [ button [ Html.Attributes.disabled True ]                           [ text "Clone"] ]
---          , td [] [ button [ Html.Events.onClick <| JobMsg <| Job.Clone ]              [ text "Clone"] ]
           , td [] [ button [ Html.Events.onClick CloneJob ]                            [ text "Clone"] ]
---          , td [] [ button [ Html.Events.onClick <| JobMsg <| Job.Save model.name "" ] [ text "Save"] ]
           , td [] [ button [ Html.Events.onClick SaveJob ]                             [ text "Save"] ]
---          , td [] [ button [ Html.Events.onClick <| JobMsg <| Job.Upgrade ]            [ text "Upgrade"] ]
           , td [] [ button [ Html.Events.onClick UpgradeJob ]                          [ text "Upgrade"] ]
           ]
         ]
@@ -298,12 +300,17 @@ view model =
       , Html.App.map DebugMsg  <| Util.Debug.view "JobType" model.debug
       ]
 
+viewModel : Model -> Html Msg
+viewModel model =
+    table []
+    [ tr []
+      [ td [] [ text <| toString model.jobIdNames ]
+      , td [] [ text <| toString model.job ]
+      ]
+    ]
+
 
 -- Helpers
-
---jobSave jobType =
---    JobMsg <| Job.Save jobType ""
-
 
 newJobIdNames : Model -> Job.Model -> List ( String, String )
 newJobIdNames model job' =
@@ -316,7 +323,6 @@ newJobIdNames model job' =
 
     otherJobIdNames =
         List.filter otherId model.jobIdNames
---    _ = Debug.log "JobType.newJobIdNames:otherJobIdNames" otherJobIdNames
 
     newJobIdNames =
         if model.job.id == job'.id then
@@ -325,20 +331,31 @@ newJobIdNames model job' =
             (job'.id, job'.name)
                 :: (model.job.id, model.job.name)
                 :: otherJobIdNames
---    _ = Debug.log "JobType.newJobIdNames:newJobIdNames" newJobIdNames
 
     validJobIdNames =
         List.filter validId newJobIdNames
---    _ = Debug.log "JobType.newJobIdNames:validJobIdNames" validJobIdNames
   in
     validJobIdNames
 
 
 
+putDefaultAndLoadJobs : Cmd Msg
+putDefaultAndLoadJobs =
+    let
+        loadJobsCmd =
+            loadJobs
+--    url = "/jobs/RSync"
+--    httpCall = Http.get decode url
+    in
+        Cmd.batch [
+            Cmd.Extra.message (JobMsg Job.SaveDefault)
+        ,   loadJobs
+        ]
+--    Task.perform LoadJobsFail LoadJobsSucceed httpCall
+
 loadJobs : Cmd Msg
 loadJobs =
   let
---    url = Debug.log "loading jobs from" "/jobs/RSync"
     url = "/jobs/RSync"
     httpCall = Http.get decode url
   in
@@ -418,13 +435,14 @@ jobHeadList2IdNameTupleList : List JobHead -> List (String, String)
 jobHeadList2IdNameTupleList jobHeadList =
     List.map (\ jh -> (jh.id, jh.name) ) jobHeadList
 
+
+-- decode only the head of a single job
 type alias JobHead =
     { id       : String
     , name     : String
     , typeName : String
     }
 
--- decode only the head of a single job
 decodeJobHead : Json.Decode.Decoder JobHead
 decodeJobHead =
     Json.Decode.succeed JobHead
@@ -433,72 +451,3 @@ decodeJobHead =
         |: ("type_name"     := Json.Decode.string)
 ----------------------------------------------}
 
-
-
-
-----encodeJob : (node -> Json.Encode.Value) -> String -> Model -> Json.Encode.Value
-----encodeJob encodeNode jobTypeName job =
---encode : String -> Model -> Json.Encode.Value
---encode jobTypeName model =
---    encodeX jobTypeName model [
---        ("root",      Widget.Data.Json.encodeNode model.node)
---    ]
---
-----    Json.Encode.object
-------        [ ("json_id",   Json.Encode.string job.jsonId)
-------        , ("yaml_id",   Json.Encode.string job.yamlId)
-----        [ ("id",        Json.Encode.string job.id)
-----        , ("job_name",  Json.Encode.string job.name)
-----        , ("type_name", Json.Encode.string jobTypeName)
-----        , ("cmd",       Json.Encode.string <| Widget.Gen.cmdOf job.node)
-------        , ("root",      encodeNode job.node)
-----        , ("root",      Widget.Data.Json.encodeNode job.node)
-----        ]
---
-----encodeX : String -> Model -> Json.Encode.Value
---encodeX
---    : String
---    -> Model  --  { a | id : String, name : String, node : Node }
---    -> List ( String, Json.Encode.Value )
---    -> Json.Encode.Value
---encodeX jobTypeName model addFields =
---    encodeNewJobOfType jobTypeName
---    ( [ ("job_id",    Json.Encode.string model.id)
---      , ("job_name",  Json.Encode.string model.name)
---      , ("cmd",       Json.Encode.string <| Widget.Gen.cmdOf model.node)
---      , ("debug",     Util.Debug.encode model.debug)
---      ] ++ addFields
---    )
-----    Json.Encode.object (
-------        [ ("json_id",   Json.Encode.string job.jsonId)
-------        , ("yaml_id",   Json.Encode.string job.yamlId)
-----        [ ("job_id",    Json.Encode.string model.id)
-----        , ("job_name",  Json.Encode.string model.name)
-----        , ("type_name", Json.Encode.string jobTypeName)
-----        , ("cmd",       Json.Encode.string <| Widget.Gen.cmdOf model.node)
-------        , ("root",      encodeNode job.node)
-------        , ("root",      Widget.Data.Json.encodeNode job.node)
-----        , ("debug",     Util.Debug.encode model.debug)
-----        ] ++ addFields
-----      )
---
---encodeNewJobOfType
---    : String
---    -> List ( String, Json.Encode.Value )
---    -> Json.Encode.Value
---encodeNewJobOfType jobTypeName jobFields =
---    Json.Encode.object (
---        [ ("type_name", Json.Encode.string jobTypeName)
---        ] ++ jobFields
---      )
-------        [ ("json_id",   Json.Encode.string job.jsonId)
-------        , ("yaml_id",   Json.Encode.string job.yamlId)
-----        [ ("job_id",    Json.Encode.string model.id)
-----        , ("job_name",  Json.Encode.string model.name)
-----        , ("type_name", Json.Encode.string jobTypeName)
-----        , ("cmd",       Json.Encode.string <| Widget.Gen.cmdOf model.node)
-------        , ("root",      encodeNode job.node)
-------        , ("root",      Widget.Data.Json.encodeNode job.node)
-----        , ("debug",     Util.Debug.encode model.debug)
-----        ] ++ addFields
-----      )

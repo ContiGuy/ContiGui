@@ -1,4 +1,4 @@
--- Copyright © 2016 ElmGone mrcs.elmgone@mailnull.com
+-- Copyright © 2016 ContiGuy mrcs.contiguy@mailnull.com
 --
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ type alias Status =  -- dataType =
 
 init : Model   -- dataType
 init =
-    Model [] 2 0
+    Model [] 2 1
 
 
 -- UPDATE

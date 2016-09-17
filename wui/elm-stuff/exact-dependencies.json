@@ -1,10 +1,10 @@
 {
     "elm-community/elm-test": "1.1.0",
     "massung/elm-css": "1.1.0",
-    "elm-lang/virtual-dom": "1.1.0",
+    "elm-lang/virtual-dom": "1.1.1",
     "shmookey/cmd-extra": "1.0.0",
     "evancz/elm-http": "3.0.1",
     "elm-lang/html": "1.1.0",
     "elm-community/json-extra": "1.0.0",
-    "elm-lang/core": "4.0.3"
+    "elm-lang/core": "4.0.5"
 }

@@ -1,4 +1,4 @@
-// Copyright © 2016 ElmGone mrcs.elmgone@mailnull.com
+// Copyright © 2016 ContiGuy mrcs.contiguy@mailnull.com
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,7 +34,10 @@ var (
 
 			//			baseDir := "/tmp"
 			htmlFiles_l := []string{"index.html", "wui/index.html"}
-			return srv.ServeGin(33333, baseDir, htmlFiles_l)
+			jts := srv.NewJobTypeServer(baseDir)
+			return jts.ServeGin(33333, //-- baseDir,
+				htmlFiles_l)
+
 		},
 	}
 )

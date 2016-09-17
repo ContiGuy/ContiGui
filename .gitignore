@@ -43,3 +43,5 @@ wui.ego
 # IntelliJ Idea (IDE) related files
 /.idea/
 conti-gui.iml
+wui/Main.html
+wui/Main.wui.ego

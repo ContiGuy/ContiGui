@@ -1,4 +1,4 @@
--- Copyright © 2016 ElmGone mrcs.elmgone@mailnull.com
+-- Copyright © 2016 ContiGuy mrcs.contiguy@mailnull.com
 --
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
@@ -43,31 +43,17 @@ main =
 
 type alias Model =
   {
-  --id        : String
-  --, cfgName   : String
     output    : String
   , debug     : Bool
-
-  -- widgets
---  , jobTypes  : JobType.Model
---  , rootNode  : W.Node
---  , rsync     : RSync.Model
   , jobType   : JobType.Model
---  , allowSave : Bool
   }
 
 init : (Model, Cmd Msg)
 init =
   let
---    ( root, nodes ) = aRoot "RSync" [
---      fst RSync.init
---    ] (fmtList "rsync {{}} # ..." " ")
     ( jobType, jtCmd ) = JobType.init
   in
-    ( Model "" False
---      (fst JobType.init)
-      jobType
---      True
+    ( Model "" False jobType
     , Cmd.map JobTypeMsg jtCmd )
 
 

@@ -1,4 +1,4 @@
--- Copyright © 2016 ElmGone mrcs.elmgone@mailnull.com
+-- Copyright © 2016 ContiGuy mrcs.contiguy@mailnull.com
 --
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
@@ -167,7 +167,7 @@ update msg model =
         let
           msgStr = Debug.log "RSync.JobSelect" str
           ( nCombo, nCbMsg ) = ComboBox.update (ComboBox.Select msgStr) model.combo
-          
+
           {-----------------------------------------------------------------------
           -----------------------------------------------------------------------}
         in
@@ -208,7 +208,7 @@ update msg model =
           , lastErr = Just err
           , lastOk = Nothing
           } ! []
-      
+
 {--------------------------------------
 --------------------------------------}
       JobsLoadRequested ->
@@ -241,7 +241,7 @@ update msg model =
             List.map .name rsyncJobs
             {-----------------------------------
             -----------------------------------}
-          
+
           newOpts =
             ComboBox.NewOptions <| "" :: jobNames
           ( nCombo, nCbMsg ) =
@@ -297,7 +297,7 @@ saveJob jobName model =
       initJob jobName model
         |> JobType.encodeJob
         |> Json.Encode.encode 2
-    
+
     postCall = Http.post decodeJobSaved url (Http.string body_s)
   in
     Task.perform SaveFail SaveSucceed postCall
@@ -374,7 +374,7 @@ viewHead labelText model allowToSave =
           ] [
             Html.text ( "   !! " ++ ( toString err ) ++ " !!" )
           ]
-        
+
         Nothing ->
           case model.lastOk of
             Just okStr ->
