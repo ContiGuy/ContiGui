@@ -178,7 +178,7 @@ fake =
             --fake-super            store/recover privileged attrs using xattrs
         -S, --sparse                handle sparse files efficiently
             --preallocate           allocate dest files before writing
-        -n, --dry-run               perform a trial run with no changes made
+.        -n, --dry-run               perform a trial run with no changes made
         -W, --whole-file            copy files whole (w/o delta-xfer algorithm)
 .        -x, --one-file-system       don't cross filesystem boundaries
         -B, --block-size=SIZE       force a fixed checksum block-size
